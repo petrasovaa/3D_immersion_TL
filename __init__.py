@@ -21,7 +21,7 @@ bl_info = {
  "name": "Tangible Landscape Addon",
  "author": "Payam Tabrizian (ptabriz)",
  "version": (1, 0),
- "blender": (2, 7, 9),
+ "blender": (2, 83, 0),
  "location": "Tools",
  "description": "Real-time 3D modeling with Tangible Landscape",
  "warning": "",
@@ -35,14 +35,46 @@ from . import prefs
 from . import Modeling3D
 from .settings import getSettings, setSettings
 
+classes = (
+    Modeling3D.ModalTimerOperator,
+    Modeling3D.BirdCam,
+    Modeling3D.HumanCam,
+    Modeling3D.RotaryCam,
+    Modeling3D.VantageCam,
+    Modeling3D.mist,
+    Modeling3D.Object_operators,
+    Modeling3D.Engine_buttons,
+    Modeling3D.TLGUI,
+    Modeling3D.MessageOperator,
+    prefs.TL_PREFS_SHOW,
+    prefs.TL_PREFS
+)
+
+
+def make_annotations(cls):
+    """Converts class fields to annotations if running with Blender 2.8"""
+    if bpy.app.version < (2, 80):
+        return cls
+    bl_props = {k: v for k, v in cls.__dict__.items() if isinstance(v, tuple)}
+    if bl_props:
+        if '__annotations__' not in cls.__dict__:
+            setattr(cls, '__annotations__', {})
+        annotations = cls.__dict__['__annotations__']
+        for k, v in bl_props.items():
+            annotations[k] = v
+            delattr(cls, k)
+    return cls
+
+
 def register():
+    for cls in classes:
+        make_annotations(cls)
+        bpy.utils.register_class(cls)
+    #prefs = bpy.context.user_preferences.addons[__package__].preferences
 
-    bpy.utils.register_module(__name__) #register all imported operators of the current
-    prefs = bpy.context.user_preferences.addons[__package__].preferences
-
-def unregister():
-
-    bpy.utils.unregister_module(__name__)
+def unregister():  # note how unregistering is done in reverse
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
 
 if __name__ == "__main__":
     register()

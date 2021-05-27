@@ -903,7 +903,7 @@ class ModalTimerOperator(bpy.types.Operator):
 
         def execute(self, context):
 
-            bpy.context.space_data.show_manipulator = False
+            #bpy.context.space_data.show_manipulator = False
             wm = context.window_manager
             wm.modal_handler_add(self)
 
@@ -1095,7 +1095,7 @@ class TLGUI(bpy.types.Panel):
     bl_category = "Tangible Landscape"
     bl_label = "Tangibe Landscape "
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_region_type = 'UI'
 
     # Draw
     def draw(self, context):
@@ -1104,7 +1104,7 @@ class TLGUI(bpy.types.Panel):
         wm = context.window_manager
         # scene = context.scene
         box = layout.box()
-        box.label('System options')
+        box.label(text='System options')
         row = box.row(align=True)
         row.operator("wm.modal_timer_operator",
                      text="Turn on Watch Mode",
@@ -1114,11 +1114,11 @@ class TLGUI(bpy.types.Panel):
 
         box = layout.box()
         box.alignment = 'CENTER'
-        box.label('Camera options', icon="CAMERA_DATA")
+        box.label(text='Camera options', icon="CAMERA_DATA")
         row = box.row(align=True)
         row.operator("wm.vantagecam",
                      text="Tangibly selected views",
-                     icon="MAN_TRANS")
+                     icon="DECORATE_DRIVER")
         row = box.row(align=True)
         row.operator("wm.humancam", text="Preset Human views", icon="SCENE")
         row = box.row()
@@ -1126,16 +1126,16 @@ class TLGUI(bpy.types.Panel):
         row = box.row()
         row.operator("wm.rotarycam",
                      text="Orbiting bird view",
-                     icon="BORDER_LASSO")
+                     icon="ORIENTATION_GIMBAL")
 
         box = layout.box()
-        box.label('Atomospheric adjustments')
+        box.label(text='Atomospheric adjustments')
 
         row4 = box.row()
         row4.operator("wm.mist", text="Toggle Mist", icon="FORCE_TURBULENCE")
 
         box = layout.box()
-        box.label('Object operations')
+        box.label(text='Object operations')
 
         row1 = box.row()
         row1.operator("objects.operator", text="Remove trees").button = "TREES"
@@ -1143,7 +1143,7 @@ class TLGUI(bpy.types.Panel):
         row2.operator("objects.operator", text="Trail").button = "TRAIL"
         box = layout.box()
 
-        box.label('Rendering and Realism')
+        box.label(text='Rendering and Realism')
         box.alignment = 'CENTER'
         row4 = box.row()
         row4.operator("render.engine",
@@ -1154,7 +1154,7 @@ class TLGUI(bpy.types.Panel):
                       text="Render").engineButton = "Render"
 
         row5 = box.row()
-        row5.label("Realism")
+        row5.label(text="Realism")
         row6 = box.row()
         row6.operator("render.engine",
                       text="Low poly").engineButton = "Low"
@@ -1182,15 +1182,4 @@ class MessageOperator(bpy.types.Operator):
         self.layout.label(self.message)
 
 
-def register():
 
-    bpy.utils.register_module(__name__)
-
-def unregister():
-    bpy.utils.unregister_module(__name__)
-
-# def register(module):
-
-if __name__ == "__main__":
-    # register all Classes
-    register()
