@@ -1,14 +1,15 @@
 bl_info = {
- "name": "Tangible Landscape Addon",
- "author": "Payam Tabrizian (ptabriz)",
- "version": (1, 0),
- "blender": (2, 7, 9),
- "location": "View3D",
- "description": "Real-time 3D modeling with Tangible Landscape",
- "warning": "",
- "wiki_url": "",
- "tracker_url": "",
- "category": "view_3D"}
+    "name": "Tangible Landscape Addon",
+    "author": "Payam Tabrizian (ptabriz)",
+    "version": (1, 0),
+    "blender": (2, 7, 9),
+    "location": "View3D",
+    "description": "Real-time 3D modeling with Tangible Landscape",
+    "warning": "",
+    "wiki_url": "",
+    "tracker_url": "",
+    "category": "view_3D",
+}
 
 
 import bpy
@@ -24,9 +25,9 @@ from . import mesh_helpers
 from .settings import getSettings, setSettings
 
 from bpy.props import (
-        StringProperty,
-        EnumProperty,
-        )
+    StringProperty,
+    EnumProperty,
+)
 
 import bpy.utils.previews
 from bpy.types import WindowManager
@@ -42,10 +43,11 @@ waterFile = "water.tif"
 emptyFile = "empty.txt"
 CRS = "EPSG:3358"
 
+
 class Prefs:
     def __init__(self):
-        self.watchFolder =  getSettings()['folder'] + "/" + watchName
-        self.scratchFolder =  getSettings()['folder'] + "/" + "scratch"
+        self.watchFolder = getSettings()["folder"] + "/" + watchName
+        self.scratchFolder = getSettings()["folder"] + "/" + "scratch"
         self.terrainPath = os.path.join(self.watchFolder, terrainFile)
         self.DEMPath = os.path.join(self.watchFolder, DEMFile)
         self.texturePath = os.path.join(self.watchFolder, textureFile)
@@ -54,19 +56,20 @@ class Prefs:
         self.waterPath = os.path.join(self.watchFolder, waterFile)
         self.emptyPath = os.path.join(self.watchFolder, emptyFile)
 
-        self.CRS = "EPSG:" + getSettings()['CRS']
-        self.timer = getSettings()['timer']
+        self.CRS = "EPSG:" + getSettings()["CRS"]
+        self.timer = getSettings()["timer"]
 
-def addSide(objName,mat):
+
+def addSide(objName, mat):
 
     ter = bpy.data.objects[objName]
-    ter.select=True
+    ter.select = True
 
-    bpy.ops.object.mode_set(mode='EDIT')
-    bpy.ops.mesh.select_all(action='DESELECT')
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="DESELECT")
     me = ter.data
 
-    if ter.mode == 'EDIT':
+    if ter.mode == "EDIT":
         bm = bmesh.from_edit_mesh(ter.data)
         vertices = bm.verts
 
@@ -75,7 +78,7 @@ def addSide(objName,mat):
 
     verts = [ter.matrix_world * vert.co for vert in vertices]
 
-    dic={"x":[], "y":[], "z":[]}
+    dic = {"x": [], "y": [], "z": []}
     for vert in verts:
         if not math.isnan(vert[0]):
             dic["x"].append(vert[0])
@@ -91,52 +94,50 @@ def addSide(objName,mat):
     tres = 3
 
     for vert in vertices:
-        if vert.co[0] < xmin + tres and vert.co[0] > xmin-tres:
+        if vert.co[0] < xmin + tres and vert.co[0] > xmin - tres:
             vert.select = True
             vert.co[2] = -50
 
-        elif vert.co[1] < ymin + tres and vert.co[1] > ymin-tres:
+        elif vert.co[1] < ymin + tres and vert.co[1] > ymin - tres:
             vert.select = True
             vert.co[2] = -50
 
-        elif vert.co[0] < xmax + tres and vert.co[0] > xmax-tres:
+        elif vert.co[0] < xmax + tres and vert.co[0] > xmax - tres:
             vert.select = True
             vert.co[2] = -50
-        elif vert.co[1] < ymax + tres and vert.co[1] > ymax-tres:
+        elif vert.co[1] < ymax + tres and vert.co[1] > ymax - tres:
             vert.select = True
             vert.co[2] = -50
-    #bpy.ops.transform.translate(value=(0, 0, -100), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SHARP', proportional_size=45.2593)
+    # bpy.ops.transform.translate(value=(0, 0, -100), constraint_axis=(False, False, True), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SHARP', proportional_size=45.2593)
 
     bmesh.update_edit_mesh(me, True)
 
-    def NormalInDirection( normal, direction, limit = .5):
-        return direction.dot( normal ) > limit
+    def NormalInDirection(normal, direction, limit=0.5):
+        return direction.dot(normal) > limit
 
-    def GoingUp( normal, limit = .5):
-        return NormalInDirection( normal, Vector( (0, 0, 1 ) ), limit )
+    def GoingUp(normal, limit=0.5):
+        return NormalInDirection(normal, Vector((0, 0, 1)), limit)
 
-    def GoingDown( normal, limit = .5 ):
-        return NormalInDirection( normal, Vector( (0, 0, -1 ) ), limit )
+    def GoingDown(normal, limit=0.5):
+        return NormalInDirection(normal, Vector((0, 0, -1)), limit)
 
-    def GoingSide( normal, limit = .2 ):
-        return ( GoingUp( normal, limit ) == False and
-        GoingDown( normal, limit ) == False )
+    def GoingSide(normal, limit=0.2):
+        return GoingUp(normal, limit) == False and GoingDown(normal, limit) == False
 
-    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
+    bpy.ops.object.mode_set(mode="OBJECT", toggle=False)
 
-    #Selects faces going side
+    # Selects faces going side
 
     for face in ter.data.polygons:
         face.select = GoingSide(face.normal)
 
-    bpy.ops.object.mode_set(mode='EDIT', toggle=False)
+    bpy.ops.object.mode_set(mode="EDIT", toggle=False)
+
+    changeMat(objName, mat, 2)
+    bpy.ops.object.mode_set(mode="OBJECT", toggle=False)
 
 
-    changeMat(objName,mat,2)
-    bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-
-def shrinkRaster2Obj(obj, target, method="NEAREST_VERTEX",
-                     offset=0, delModifier=True):
+def shrinkRaster2Obj(obj, target, method="NEAREST_VERTEX", offset=0, delModifier=True):
     """allows an object to shrink to the surface of another object.
     It moves each vertex of the object being modified to the closest position
     on the surface of the given mesh
@@ -162,8 +163,8 @@ def shrinkRaster2Obj(obj, target, method="NEAREST_VERTEX",
             rasterObj.modifiers.remove(rasterObj.modifiers.get("Shrinkwrap"))
 
         # apply shrinkwrap Modifier #
-        bpy.ops.object.modifier_add(type='SHRINKWRAP')
-        bpy.context.object.modifiers['Shrinkwrap'].target = target
+        bpy.ops.object.modifier_add(type="SHRINKWRAP")
+        bpy.context.object.modifiers["Shrinkwrap"].target = target
         bpy.context.object.modifiers["Shrinkwrap"].wrap_method = method
         bpy.context.object.modifiers["Shrinkwrap"].use_keep_above_surface = True
         bpy.context.object.modifiers["Shrinkwrap"].offset = offset
@@ -171,8 +172,10 @@ def shrinkRaster2Obj(obj, target, method="NEAREST_VERTEX",
             bpy.ops.object.modifier_move_up(modifier="Shrinkwrap")
 
     except:
-        print ("""Shrinkwrap Unsuccessfull: either the raster or target
-              object does not exist""")
+        print(
+            """Shrinkwrap Unsuccessfull: either the raster or target
+              object does not exist"""
+        )
 
 
 def smooth(obj, factor=2, iterations=4):
@@ -217,17 +220,17 @@ def changeTex(obj, texturePath):
     cTex.image = img
 
     # Create material
-    mat = bpy.data.materials.new('P')
+    mat = bpy.data.materials.new("P")
 
     # Add texture slot for color texture
     mtex = mat.texture_slots.add()
     mtex.texture = cTex
-    mtex.texture_coords = 'UV'
+    mtex.texture_coords = "UV"
     mtex.use_map_color_diffuse = True
     mtex.use_map_color_emission = True
     mtex.emission_color_factor = 0.5
     mtex.use_map_density = True
-    mtex.mapping = 'FLAT'
+    mtex.mapping = "FLAT"
     me = obj.data
     me.materials.append(mat)
 
@@ -258,8 +261,8 @@ def translateLoc(obj, pos, HumanHeight=+1.8):
 
 
 def getVertexList(obj, precision=0):
-    """ returns a dictionary with all the object vertices as keys and
-    a list of coordinaltes as walues """
+    """returns a dictionary with all the object vertices as keys and
+    a list of coordinaltes as walues"""
 
     obj = bpy.data.objects[obj]
     objData = obj.data
@@ -274,9 +277,9 @@ def getVertexList(obj, precision=0):
 
 
 def findNearVert(coord, targetDic, estimate=2.5):
-    """ gets a list of x and y along with a dictionary of object vertices
+    """gets a list of x and y along with a dictionary of object vertices
     and returns the nearest vertex index from the target object dictionary
-    estimate --defines    """
+    estimate --defines"""
 
     x1 = int(coord[0])
     y1 = int(coord[1])
@@ -287,18 +290,20 @@ def findNearVert(coord, targetDic, estimate=2.5):
         x2 = targetDic[vertex][0]
         y2 = targetDic[vertex][1]
         # calulates the distance between the object vertices #
-        dist = round(math.sqrt(((x2-x1)**2) + ((y2-y1)**2)), 1)
+        dist = round(math.sqrt(((x2 - x1) ** 2) + ((y2 - y1) ** 2)), 1)
         if dist < estimate:
             distList.append(dist)
             distDic[dist] = targetDic[vertex]
     if distDic:
-            nearestVert = (distDic[min(distDic)])
-            print ("""Nearest vertex found has distance of {0} meters and
+        nearestVert = distDic[min(distDic)]
+        print(
+            """Nearest vertex found has distance of {0} meters and
                     coordinates of {1}:".format( min(distDic),
-                    distDic[min(distDic)])""")
-            return nearestVert
+                    distDic[min(distDic)])"""
+        )
+        return nearestVert
     else:
-            return
+        return
 
 
 def calcArea(obj):
@@ -306,41 +311,40 @@ def calcArea(obj):
 
     obj = bpy.data.objects[obj]
     bm = mesh_helpers.bmesh_copy_from_object(obj, apply_modifiers=True)
-    area = mesh_helpers.bmesh_calc_area(bm)*.2
+    area = mesh_helpers.bmesh_calc_area(bm) * 0.2
     bm.free()
 
     return area
 
 
 def toggleCam(camInitial, multiple=True, adaptGrass=False):
-        """ assign the camera scene to the passed camera name"""
+    """ assign the camera scene to the passed camera name"""
 
+    if multiple:
+        camList = []
+        for obj in bpy.data.objects:
+            if camInitial in obj.name:
+                camList.append(obj)
 
-        if multiple:
-            camList = []
-            for obj in bpy.data.objects:
-                if camInitial in obj.name:
-                    camList.append(obj)
+        currentCam = bpy.context.scene.camera
 
-            currentCam = bpy.context.scene.camera
-
-            if camInitial not in currentCam.name:
-                camIndex = 0
-            else:
-                camIndex = camList.index(currentCam)
-            if camIndex == len(camList) - 1:
-                selectCam = 0
-            else:
-                selectCam = camIndex + 1
-
-            Camera = camList[selectCam]
-
+        if camInitial not in currentCam.name:
+            camIndex = 0
         else:
-            Camera = bpy.data.objects[camInitial]
+            camIndex = camList.index(currentCam)
+        if camIndex == len(camList) - 1:
+            selectCam = 0
+        else:
+            selectCam = camIndex + 1
 
-        bpy.context.scene.camera = Camera
-        bpy.context.scene.objects.active = Camera
-        bpy.ops.view3d.object_as_camera()
+        Camera = camList[selectCam]
+
+    else:
+        Camera = bpy.data.objects[camInitial]
+
+    bpy.context.scene.camera = Camera
+    bpy.context.scene.objects.active = Camera
+    bpy.ops.view3d.object_as_camera()
 
 
 def getTime(returnType):
@@ -359,12 +363,13 @@ def getTime(returnType):
 
 
 def makeScratchfile(fPath, fType):
-    """ Renames the passed file relative to the current time and puts in
+    """Renames the passed file relative to the current time and puts in
     the scratch path"""
     out_time = getTime("time")
     fName = os.path.basename(fPath).split(".")[0]
-    scratchFolder = os.path.normpath(os.path.dirname(fPath) +
-                    os.sep + os.pardir) +  "\\scratch"
+    scratchFolder = (
+        os.path.normpath(os.path.dirname(fPath) + os.sep + os.pardir) + "\\scratch"
+    )
 
     scratchName = scratchFolder + "/" + fName + "_" + out_time
     try:
@@ -385,10 +390,21 @@ def makeScratchfile(fPath, fType):
         print("could not rename the {0} file").format(fPath)
 
 
-def particle(obj, setting = None, specieType = None, count = None, specieSize=.6, rotation=.02,
-             rotObj="OB_Y", group=False, vertexGroup=False, particle_name="particle_setting", texture=False):
-    """ Get object, specie type, specie count, and specie size
-    and apply particle system """
+def particle(
+    obj,
+    setting=None,
+    specieType=None,
+    count=None,
+    specieSize=0.6,
+    rotation=0.02,
+    rotObj="OB_Y",
+    group=False,
+    vertexGroup=False,
+    particle_name="particle_setting",
+    texture=False,
+):
+    """Get object, specie type, specie count, and specie size
+    and apply particle system"""
     selectOnly(obj)
     Obj = bpy.data.objects[obj]
     bpy.context.scene.objects.active = Obj
@@ -403,9 +419,9 @@ def particle(obj, setting = None, specieType = None, count = None, specieSize=.6
     else:
         psys1.seed = 4
         pset1 = psys1.settings
-        pset1.name = 'Patch' + particle_name
-        pset1.type = 'EMITTER'
-        pset1.physics_type = 'NO'
+        pset1.name = "Patch" + particle_name
+        pset1.type = "EMITTER"
+        pset1.physics_type = "NO"
 
         pset1.use_even_distribution = False
         pset1.use_emit_random = False
@@ -413,25 +429,28 @@ def particle(obj, setting = None, specieType = None, count = None, specieSize=.6
         pset1.use_dead = True
 
         if vertexGroup:
-            bpy.context.object.particle_systems["ParticleSystem"].\
-                vertex_group_density = "Density"
-            bpy.context.object.particle_systems["ParticleSystem"].\
-                vertex_group_length = "Height"
+            bpy.context.object.particle_systems[
+                "ParticleSystem"
+            ].vertex_group_density = "Density"
+            bpy.context.object.particle_systems[
+                "ParticleSystem"
+            ].vertex_group_length = "Height"
         if group:
-            pset1.render_type = 'GROUP'
+            pset1.render_type = "GROUP"
             pset1.dupli_group = bpy.data.groups[specieType]
             pset1.use_group_pick_random = True
         else:
-            pset1.render_type = 'OBJECT'
+            pset1.render_type = "OBJECT"
             pset1.dupli_object = bpy.data.objects[specieType]
 
         if texture:
-            Obj.particle_systems[particle_name].settings.\
-            active_texture = bpy.data.textures[texture]
+            Obj.particle_systems[
+                particle_name
+            ].settings.active_texture = bpy.data.textures[texture]
 
         pset1.lifetime_random = 0.0
-        pset1.emit_from = 'FACE'
-        pset1.distribution = 'JIT'
+        pset1.emit_from = "FACE"
+        pset1.distribution = "JIT"
         pset1.count = count
         pset1.use_render_emitter = True
 
@@ -444,8 +463,9 @@ def particle(obj, setting = None, specieType = None, count = None, specieSize=.6
 
         pset1.use_rotation_dupli = True
         pset1.particle_size = 1
-        pset1.size_random = .4
+        pset1.size_random = 0.4
         pset1.rotation_mode = rotObj
+
 
 def particle_get(obj):
     """Stores particle system settings of an object in a dictionary"""
@@ -456,52 +476,55 @@ def particle_get(obj):
         bpy.data.particles[i.settings.name].use_fake_user = True
     return particleDic
 
+
 def particle_clone(particleDic, clone):
     """assigns particle system settings retrieved from a dictionary to an object"""
-    for i in particleDic :
+    for i in particleDic:
         bpy.context.scene.objects.active = clone
         bpy.ops.object.particle_system_add()
         psys = clone.particle_systems[-1]
         psys.name = i
         psys.settings = bpy.data.particles[particleDic[i]]
 
+
 def changeMat(obj, mat, slot=1):
 
     obj = bpy.data.objects[obj]
     mat = bpy.data.materials.get(mat)
     if len(obj.data.materials) >= slot:
-    # assign to 1st material slot
+        # assign to 1st material slot
         obj.data.materials[slot] = mat
     else:
-    # no slots
+        # no slots
         obj.data.materials.append(mat)
 
     if slot > 1:
-        obj.active_material_index = slot-1
+        obj.active_material_index = slot - 1
         bpy.ops.object.material_slot_assign()
 
 
 def remove(wildCard, all=False):
 
-    bpy.ops.object.select_all(action='DESELECT')
+    bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.data.objects:
         if obj.name.startswith(wildCard):
             if obj.hide:
-                obj.hide=False
+                obj.hide = False
             obj.select = True
             bpy.ops.object.delete()
+
 
 def subdivide(cutNo):
 
     if bpy.ops.object.mode_set.poll():
-        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.object.mode_set(mode="EDIT")
         obj = bpy.context.active_object
         bpy.ops.mesh.subdivide(number_cuts=cutNo, smoothness=0.2)
         bmesh.update_edit_mesh(obj.data, True)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.mode_set(mode="OBJECT")
+
 
 class Adapt:
-
     def __init__(self):
 
         self.plane = "terrain"
@@ -520,7 +543,6 @@ class Adapt:
         self.world = bpy.context.scene.world.name
         self.realism = self.world.split(".")[1]
 
-
         self.vantage = "vantage"
         self.vantagetxt = "vantage.txt"
         self.target = "camtarget"
@@ -530,7 +552,6 @@ class Adapt:
 
         self.clouds = bpy.data.objects["Clouds"]
         self.sun = bpy.data.objects["Sun"]
-
 
     def changeEngine(self, mode, real):
 
@@ -542,88 +563,91 @@ class Adapt:
                 for index, mat in enumerate(obj.material_slots):
                     if not obj.hide:
 
-                        if (mat.name.split(".")[0] == self.engine[0] and
-                                "cube" not in obj.name):
+                        if (
+                            mat.name.split(".")[0] == self.engine[0]
+                            and "cube" not in obj.name
+                        ):
 
                             if self.realism in mat.name:
-                                newMatName = (mode[0] + "." +
-                                mat.name.split(".")[1] + "." + real)
+                                newMatName = (
+                                    mode[0] + "." + mat.name.split(".")[1] + "." + real
+                                )
                             else:
-                                newMatName = (mode[0] + "." +
-                                mat.name.split(".")[1])
+                                newMatName = mode[0] + "." + mat.name.split(".")[1]
 
                             mat = bpy.data.materials.get(newMatName)
                             obj.data.materials[index] = mat
 
         if mode != self.engine:
-                for lamp in bpy.data.lamps:
-                    lampInd = lamp.name.split(".")[0]
+            for lamp in bpy.data.lamps:
+                lampInd = lamp.name.split(".")[0]
 
-                    if lampInd == self.engine[0] or lampInd == mode[0]:
-                        newLampName = mode[0] + lamp.name[1:]
-                        if (newLampName in bpy.data.objects and
-                            not bpy.data.objects[newLampName].hide ):
-                            newLamp = bpy.data.objects[newLampName]
-                            oldLamp = bpy.data.objects[lamp.name]
-                            oldLamp.layers[0] = False
-                            oldLamp.layers[3] = True
-                            newLamp.layers[0] = True
+                if lampInd == self.engine[0] or lampInd == mode[0]:
+                    newLampName = mode[0] + lamp.name[1:]
+                    if (
+                        newLampName in bpy.data.objects
+                        and not bpy.data.objects[newLampName].hide
+                    ):
+                        newLamp = bpy.data.objects[newLampName]
+                        oldLamp = bpy.data.objects[lamp.name]
+                        oldLamp.layers[0] = False
+                        oldLamp.layers[3] = True
+                        newLamp.layers[0] = True
 
-                # Change rendere engine #
-                bpy.context.scene.render.engine = mode
-                self.engine = mode
-                # Change background #
+            # Change rendere engine #
+            bpy.context.scene.render.engine = mode
+            self.engine = mode
+            # Change background #
 
         # Change render mode #
         for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
+            if area.type == "VIEW_3D":
                 for space in area.spaces:
-                    if space.type == 'VIEW_3D':
+                    if space.type == "VIEW_3D":
                         if mode == "CYCLES":
 
                             bpy.context.scene.world.active_texture_index = 0
-                            space.viewport_shade = 'MATERIAL'
+                            space.viewport_shade = "MATERIAL"
 
                         else:
                             bpy.context.scene.world.active_texture_index = 1
-                            space.viewport_shade = 'MATERIAL'
-
+                            space.viewport_shade = "MATERIAL"
 
     def UpdateWorld(self, engine, realism):
 
         newWorld = engine + "." + realism
         bpy.context.scene.world = bpy.data.worlds[newWorld]
-        self.world= bpy.data.worlds[newWorld]
+        self.world = bpy.data.worlds[newWorld]
 
-    def changeRealism(self,mode):
+    def changeRealism(self, mode):
 
         self.realism = mode
         if self.terrain.particle_systems:
             for particle in self.terrain.particle_systems:
                 setting = particle.settings
-                if setting.count== 1:
-                    newParticle= mode + "_" + particle.name + "_single"
+                if setting.count == 1:
+                    newParticle = mode + "_" + particle.name + "_single"
                 else:
                     newParticle = mode + "_" + particle.name
 
-                if setting.render_type == 'GROUP':
+                if setting.render_type == "GROUP":
                     setting.dupli_group = bpy.data.groups[newParticle]
                 else:
                     setting.dupli_object = bpy.data.objects[newParticle]
 
         if mode == "High":
-          self.clouds.hide = True
-          self.sun.hide = True
+            self.clouds.hide = True
+            self.sun.hide = True
 
         elif mode == "Low":
-          self.clouds.hide = False
-          self.sun.hide = False
+            self.clouds.hide = False
+            self.sun.hide = False
 
-        self.changeEngine(self.engine,mode)
+        self.changeEngine(self.engine, mode)
 
-    def terrainChange(self,Path, CRS):
+    def terrainChange(self, Path, CRS):
 
-    #try:
+        # try:
         # Check if the terrain object exist and has particles
         if bpy.data.objects.get(self.plane):
             if bpy.data.objects[self.plane].particle_systems:
@@ -633,29 +657,30 @@ class Adapt:
             # Delete terrain object
             selectOnly(self.plane, delete=True)
 
-
-        bpy.ops.importgis.georaster(filepath=Path, importMode="DEM",
-                                    subdivision="mesh", rastCRS=CRS)
+        bpy.ops.importgis.georaster(
+            filepath=Path, importMode="DEM", subdivision="mesh", rastCRS=CRS
+        )
         selectOnly(self.plane)
         bpy.ops.object.convert(target="MESH")
         # smooth(self.plane, 3, 1)
         mat = self.engine[0] + ".Grass" + "." + self.realism
         matSide = self.engine[0] + ".Side" + "." + self.realism
         changeMat(self.plane, mat)
-        addSide(self.plane,matSide)
+        addSide(self.plane, matSide)
 
         # Assign the stored particle
         if particle_settings:
-            print (particle_settings)
+            print(particle_settings)
             particle_clone(particle_settings, bpy.data.objects[self.plane])
         os.remove(Path)
         # makeScratchfile(Path, "raster")
 
         return "finished"
-    #except:
-        #print ("Train adaptation unsuccessfull")
 
-    def textureM(self,texturePath):
+    # except:
+    # print ("Train adaptation unsuccessfull")
+
+    def textureM(self, texturePath):
 
         try:
             selectOnly(self.plane)
@@ -663,31 +688,32 @@ class Adapt:
             changeTex(self.plane, tex)
             return "finished"
         except:
-            print ("cannot change texture")
+            print("cannot change texture")
 
-    def waterFill(self,waterPath, CRS):
+    def waterFill(self, waterPath, CRS):
 
         if bpy.data.objects.get(self.water, CRS):
             self.scene.objects.unlink(bpy.data.objects[self.water])
             bpy.data.objects.remove(bpy.data.objects[self.water])
 
         try:
-            bpy.ops.importgis.georaster(filepath=waterPath, importMode="DEM",
-                                        subdivision="mesh", rastCRS=CRS)
-            bpy.ops.object.convert(target='MESH')
+            bpy.ops.importgis.georaster(
+                filepath=waterPath, importMode="DEM", subdivision="mesh", rastCRS=CRS
+            )
+            bpy.ops.object.convert(target="MESH")
             bpy.context.object.show_transparent = True
             mat = self.engine[0] + ".Water"
             changeMat(self.water, mat)
 
             if (int(getTime("sec"))) % 2 == 0:
-                #makeScratchfile(waterPath, "raster")
+                # makeScratchfile(waterPath, "raster")
                 os.remove(waterPath)
 
             return "imported"
         except:
             print("water patch drawing failed")
 
-    def vantageShp(self,vantagePath, CRS):
+    def vantageShp(self, vantagePath, CRS):
 
         if bpy.data.objects.get(self.vantage):
             selectOnly(self.vantage, delete=True)
@@ -699,26 +725,29 @@ class Adapt:
             cam = bpy.data.objects[self.vantageCam]
             tar = bpy.data.objects[self.target]
 
-            me = vanLine.to_mesh(self.scene, apply_modifiers=True,
-                                 settings='PREVIEW')
+            me = vanLine.to_mesh(self.scene, apply_modifiers=True, settings="PREVIEW")
             me.transform(vanLine.matrix_world)
-            cam.location = [me.vertices[0].co.x,
-                            me.vertices[0].co.y,
-                            me.vertices[0].co.z+12]
-            tar.location = [me.vertices[-1].co.x,
-                            me.vertices[-1].co.y,
-                            me.vertices[0].co.z+16]
+            cam.location = [
+                me.vertices[0].co.x,
+                me.vertices[0].co.y,
+                me.vertices[0].co.z + 12,
+            ]
+            tar.location = [
+                me.vertices[-1].co.x,
+                me.vertices[-1].co.y,
+                me.vertices[0].co.z + 16,
+            ]
             toggleCam(self.vantageCam, adaptGrass=False)
-            #makeScratchfile(vantagePath, "vector")
+            # makeScratchfile(vantagePath, "vector")
             os.remove(vantagePath)
             os.remove(vantagePath[:-4] + ".prj")
             os.remove(vantagePath[:-4] + ".shx")
             os.remove(vantagePath[:-4] + ".dbf")
 
         except:
-            print ("vantage not imported")
+            print("vantage not imported")
 
-    def trails(self,trailPath, CRS):
+    def trails(self, trailPath, CRS):
 
         if bpy.data.objects.get(self.trail):
             selectOnly(self.trail, delete=True)
@@ -727,49 +756,50 @@ class Adapt:
             bpy.ops.importgis.shapefile(filepath=trailPath, shpCRS=CRS)
             if bpy.ops.object.mode_set.poll():
 
-                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.object.mode_set(mode="EDIT")
                 bpy.ops.mesh.remove_doubles()
-                bpy.ops.mesh.select_all(action='SELECT')
-                #bpy.ops.mesh.vertices_smooth()
-                #bpy.ops.mesh.vertices_smooth()
+                bpy.ops.mesh.select_all(action="SELECT")
+                # bpy.ops.mesh.vertices_smooth()
+                # bpy.ops.mesh.vertices_smooth()
 
                 bpy.context.space_data.cursor_location = (-440, 29, 34)
-                bpy.ops.mesh.sort_elements(type='CURSOR_DISTANCE',
-                                           elements={'VERT'})
-                bpy.ops.object.mode_set(mode='OBJECT')
-                shrinkRaster2Obj(self.trail, self.plane,
-                                 method='NEAREST_SURFACEPOINT',
-                                 offset=1.5, delModifier=False)
+                bpy.ops.mesh.sort_elements(type="CURSOR_DISTANCE", elements={"VERT"})
+                bpy.ops.object.mode_set(mode="OBJECT")
+                shrinkRaster2Obj(
+                    self.trail,
+                    self.plane,
+                    method="NEAREST_SURFACEPOINT",
+                    offset=1.5,
+                    delModifier=False,
+                )
 
-                bpy.ops.object.convert(target='CURVE')
-                bpy.context.object.data.bevel_object = \
-                    bpy.data.objects["T_profile"]
-                bpy.context.object.data.twist_mode = 'Z_UP'
+                bpy.ops.object.convert(target="CURVE")
+                bpy.context.object.data.bevel_object = bpy.data.objects["T_profile"]
+                bpy.context.object.data.twist_mode = "Z_UP"
                 bpy.context.object.data.twist_smooth = 10
                 obj = bpy.data.objects[self.trail]
-                obj.location[2]= obj.location[2] + 1
+                obj.location[2] = obj.location[2] + 1
 
                 mat = self.engine[0] + ".boardwalk"
                 changeMat(self.trail, mat)
-                smooth(self.trail, .18,2)
+                smooth(self.trail, 0.18, 2)
                 os.remove(trailPath)
                 os.remove(trailPath[:-4] + ".prj")
                 os.remove(trailPath[:-4] + ".shx")
                 os.remove(trailPath[:-4] + ".dbf")
 
-                #makeScratchfile(trailPath, "vector")
+                # makeScratchfile(trailPath, "vector")
 
                 return "imported"
         except:
-            print ("Camera trajectory import unsucsessfull")
+            print("Camera trajectory import unsucsessfull")
 
     def treePatchFill_old(self, patch, watchFolder):
 
         # import patchShapefile #
         try:
             patchPath = os.path.join(watchFolder, patch)
-            bpy.ops.importgis.shapefile(filepath=patchPath,
-                                        shpCRS=CRS)
+            bpy.ops.importgis.shapefile(filepath=patchPath, shpCRS=CRS)
 
             # get patch type and index #
 
@@ -785,17 +815,16 @@ class Adapt:
             area = calcArea(objName)
             if area < 400:
                 count = 1
-                specieType= specieType + "_single"
+                specieType = specieType + "_single"
             elif area > 400 and area < 900:
                 count = 2
             elif area > 900 and area < 1200:
                 count = 3
             else:
-                count = area/300
+                count = area / 300
 
             if specieType == "class3":
-                particle(objName, specieType,
-                         area/100, group=True)
+                particle(objName, specieType, area / 100, group=True)
             else:
                 particle(objName, specieType, count, group=True)
 
@@ -804,7 +833,7 @@ class Adapt:
             return "imported"
 
         except:
-            print ("tree drawing failed")
+            print("tree drawing failed")
 
     def treePatchFill(self, patch, watchFolder):
 
@@ -819,126 +848,132 @@ class Adapt:
         else:
             density = 500
 
-
         if patchType not in self.terrain.particle_systems:
             if patchType not in bpy.data.particles:
-                particle(self.plane, specieType = specieType, count = density, group=True,
-                particle_name=patchType)
+                particle(
+                    self.plane,
+                    specieType=specieType,
+                    count=density,
+                    group=True,
+                    particle_name=patchType,
+                )
 
             else:
-                particle(self.plane, setting = pathType)
+                particle(self.plane, setting=pathType)
 
         if textureName not in bpy.data.textures:
-            bpy.data.textures.new(textureName, type='IMAGE')
+            bpy.data.textures.new(textureName, type="IMAGE")
 
         bpy.data.textures[textureName].image = img
-        self.terrain.particle_systems[patchType].settings.\
-        active_texture = bpy.data.textures[textureName]
+        self.terrain.particle_systems[
+            patchType
+        ].settings.active_texture = bpy.data.textures[textureName]
 
         return "imported"
 
+
 class ModalTimerOperator(bpy.types.Operator):
-        """Operator which interatively runs from a timer"""
+    """Operator which interatively runs from a timer"""
 
-        bl_idname = "wm.modal_timer_operator"
-        bl_label = "Modal Timer Operator"
-        _timer = 0
-        _timer_count = 0
+    bl_idname = "wm.modal_timer_operator"
+    bl_label = "Modal Timer Operator"
+    _timer = 0
+    _timer_count = 0
 
-        def modal(self, context, event):
-            if event.type in {"RIGHTMOUSE", "ESC"}:
-                return {"CANCELLED"}
+    def modal(self, context, event):
+        if event.type in {"RIGHTMOUSE", "ESC"}:
+            return {"CANCELLED"}
 
-            # this condition encomasses all the actions required for watching
-            # the folder and related file/object operations .
+        # this condition encomasses all the actions required for watching
+        # the folder and related file/object operations .
 
-            if event.type == "TIMER":
+        if event.type == "TIMER":
 
-                if self._timer.time_duration != self._timer_count:
-                    self._timer_count = self._timer.time_duration
-                    fileList = (os.listdir(self.prefs.watchFolder))
+            if self._timer.time_duration != self._timer_count:
+                self._timer_count = self._timer.time_duration
+                fileList = os.listdir(self.prefs.watchFolder)
 
-                    if terrainFile in fileList:
-                        self.adapt.terrainChange(self.prefs.terrainPath,self.prefs.CRS)
-                        self.adaptMode = "TERRAIN"
+                if terrainFile in fileList:
+                    self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
+                    self.adaptMode = "TERRAIN"
 
-                    if waterFile in fileList:
-                        self.adapt.waterFill(self.prefs.waterPath, self.prefs.CRS)
-                        self.adaptMode = "WATER"
+                if waterFile in fileList:
+                    self.adapt.waterFill(self.prefs.waterPath, self.prefs.CRS)
+                    self.adaptMode = "WATER"
 
-                    if textureFile in fileList:
-                        selectOnly(self.plane)
-                        self.adapt.textureM()
-                        self.adaptMode = "TEXTURE"
+                if textureFile in fileList:
+                    selectOnly(self.plane)
+                    self.adapt.textureM()
+                    self.adaptMode = "TEXTURE"
 
-                    if trailFile in fileList:
-                        self.adapt.trails(self.prefs.trailPath, self.prefs.CRS)
-                        self.adaptMode = "TRAIL"
+                if trailFile in fileList:
+                    self.adapt.trails(self.prefs.trailPath, self.prefs.CRS)
+                    self.adaptMode = "TRAIL"
 
-                    if emptyFile in fileList:
-                        if self.terrain.particle_systems:
-                                for i in self.terrain.modifiers:
-                                    if "Particle" in i.name:
-                                        self.terrain.modifiers.remove(i)
-                        os.remove(self.prefs.emptyPath)
-                        #makeScratchfile(self.prefs.emptyPath, "text")
+                if emptyFile in fileList:
+                    if self.terrain.particle_systems:
+                        for i in self.terrain.modifiers:
+                            if "Particle" in i.name:
+                                self.terrain.modifiers.remove(i)
+                    os.remove(self.prefs.emptyPath)
+                    # makeScratchfile(self.prefs.emptyPath, "text")
 
-                    if vantageFile in fileList:
-                        self.adapt.vantageShp(self.prefs.vantagePath, self.prefs.CRS)
-                        self.adaptMode = "VANTAGE"
+                if vantageFile in fileList:
+                    self.adapt.vantageShp(self.prefs.vantagePath, self.prefs.CRS)
+                    self.adaptMode = "VANTAGE"
 
-                    # Multiple Instance objects #
+                # Multiple Instance objects #
 
-                    # Tree patches #
-                    for fileName in fileList:
-                        if(
-                            fileName.startswith("patch_") and
-                            fileName[-4:] == ".png" and
-                            fileName not in bpy.data.images):
-                            self.adapt.treePatchFill(fileName, self.prefs.watchFolder)
-                            self.adaptMode = "PATCH"
+                # Tree patches #
+                for fileName in fileList:
+                    if (
+                        fileName.startswith("patch_")
+                        and fileName[-4:] == ".png"
+                        and fileName not in bpy.data.images
+                    ):
+                        self.adapt.treePatchFill(fileName, self.prefs.watchFolder)
+                        self.adaptMode = "PATCH"
 
+        return {"PASS_THROUGH"}
 
-            return {"PASS_THROUGH"}
+    def execute(self, context):
 
-        def execute(self, context):
+        # bpy.context.space_data.show_manipulator = False
+        wm = context.window_manager
+        wm.modal_handler_add(self)
 
-            #bpy.context.space_data.show_manipulator = False
-            wm = context.window_manager
-            wm.modal_handler_add(self)
+        self.treePatch = "TreePatch"
+        self.emptyTree = "empty.txt"
+        self.terrain = bpy.data.objects["terrain"]
+        self.adaptMode = None
+        self.prefs = Prefs()
+        self.adapt = Adapt()
+        self.adapt.realism = "High"
+        self._timer = wm.event_timer_add(self.prefs.timer, context.window)
 
-            self.treePatch = "TreePatch"
-            self.emptyTree = "empty.txt"
-            self.terrain = bpy.data.objects["terrain"]
-            self.adaptMode = None
-            self.prefs = Prefs()
-            self.adapt = Adapt()
-            self.adapt.realism = "High"
-            self._timer = wm.event_timer_add(self.prefs.timer, context.window)
+        for file in os.listdir(self.prefs.watchFolder):
+            try:
+                os.remove(os.path.join(self.prefs.watchFolder, file))
+            except:
+                print("Could not remove file")
 
-            for file in os.listdir(self.prefs.watchFolder):
-                try:
-                    os.remove(os.path.join(self.prefs.watchFolder, file))
-                except:
-                    print("Could not remove file")
+        # for img in bpy.data.images:
+        # if "patch_" in img.name:
+        # bpy.data.images.remove(img, do_unlink=True)
 
-            #for img in bpy.data.images:
-                #if "patch_" in img.name:
-                    #bpy.data.images.remove(img, do_unlink=True)
+        # for i in self.terrain.modifiers:
+        # if "Particle" in i.name:
+        # self.terrain.modifiers.remove(i)
 
-            #for i in self.terrain.modifiers:
-                #if "Particle" in i.name:
-                    #self.terrain.modifiers.remove(i)
+        # for tex in bpy.data.textures:
+        # if "class" in tex.name:
+        # bpy.data.textures.remove(tex, do_unlink=True)
 
-            #for tex in bpy.data.textures:
-                #if "class" in tex.name:
-                    #bpy.data.textures.remove(tex, do_unlink=True)
+        return {"RUNNING_MODAL"}
 
-            return {"RUNNING_MODAL"}
-
-        def cancel(self, context):
-            wm = context.window_manager
-            wm.event_timer_remove(self._timer)
+    def cancel(self, context):
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
 
 
 class BirdCam(bpy.types.Operator):
@@ -952,7 +987,7 @@ class BirdCam(bpy.types.Operator):
 
         toggleCam("Bird_", adaptGrass=False)
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class HumanCam(bpy.types.Operator):
@@ -966,7 +1001,7 @@ class HumanCam(bpy.types.Operator):
 
         toggleCam("Human_", adaptGrass=False)
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class RotaryCam(bpy.types.Operator):
@@ -981,7 +1016,7 @@ class RotaryCam(bpy.types.Operator):
         toggleCam("Rotary_")
         bpy.ops.screen.animation_play()
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class VantageCam(bpy.types.Operator):
@@ -994,7 +1029,7 @@ class VantageCam(bpy.types.Operator):
     def execute(self, context):
 
         toggleCam("VantageCam", adaptGrass=True)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class mist(bpy.types.Operator):
@@ -1005,11 +1040,12 @@ class mist(bpy.types.Operator):
     def execute(self, context):
         if not bpy.context.scene.world.mist_settings.use_mist:
             bpy.context.scene.world.mist_settings.use_mist = True
-            return {'FINISHED'}
+            return {"FINISHED"}
 
         if bpy.context.scene.world.mist_settings.use_mist:
             bpy.context.scene.world.mist_settings.use_mist = False
-            return {'FINISHED'}
+            return {"FINISHED"}
+
 
 class Object_operators(bpy.types.Operator):
     bl_idname = "objects.operator"
@@ -1029,7 +1065,7 @@ class Object_operators(bpy.types.Operator):
         elif self.button == "TRAIL":
             remove("trail")
 
-        return{'FINISHED'}
+        return {"FINISHED"}
 
 
 class Engine_buttons(bpy.types.Operator):
@@ -1045,57 +1081,62 @@ class Engine_buttons(bpy.types.Operator):
 
         if self.engineButton == "BLENDER_RENDER":
 
-            if realism == "High" and engine != "BLENDER_RENDER" :
-                Adapt().changeEngine("BLENDER_RENDER",real=realism)
+            if realism == "High" and engine != "BLENDER_RENDER":
+                Adapt().changeEngine("BLENDER_RENDER", real=realism)
                 self.mode = "BLENDER_RENDER"
                 Adapt().realism = realism
                 Adapt().engine = "BLENDER_RENDER"
                 Adapt().UpdateWorld("BLENDER_RENDER", "High")
 
             else:
-                bpy.ops.error.message('INVOKE_DEFAULT',
-                                      type = "Error",
-                                      message = "Blender renderer can be only used in realistic mode")
+                bpy.ops.error.message(
+                    "INVOKE_DEFAULT",
+                    type="Error",
+                    message="Blender renderer can be only used in realistic mode",
+                )
 
-        elif self.engineButton == 'CYCLES':
+        elif self.engineButton == "CYCLES":
 
             if engine != "CYCLES":
 
                 Adapt().changeEngine("CYCLES", real=realism)
-                Adapt().engine= "CYCLES"
+                Adapt().engine = "CYCLES"
                 Adapt().realism = realism
                 Adapt().UpdateWorld("CYCLES", realism)
 
-        elif self.engineButton == 'Low':
+        elif self.engineButton == "Low":
 
             if engine == "CYCLES":
-                Adapt().changeEngine(engine,real = 'Low')
+                Adapt().changeEngine(engine, real="Low")
                 Adapt().changeRealism("Low")
-                Adapt().UpdateWorld("CYCLES",'Low')
+                Adapt().UpdateWorld("CYCLES", "Low")
             else:
-                bpy.ops.error.message('INVOKE_DEFAULT',
-                                      type = "Error",
-                                      message = "Low poly rendering can be only used in Cycles renderer")
+                bpy.ops.error.message(
+                    "INVOKE_DEFAULT",
+                    type="Error",
+                    message="Low poly rendering can be only used in Cycles renderer",
+                )
 
-        elif self.engineButton == 'High':
+        elif self.engineButton == "High":
 
-            Adapt().changeEngine(engine,real = 'High')
+            Adapt().changeEngine(engine, real="High")
             Adapt().changeRealism("High")
             Adapt().realism = "High"
-            Adapt().UpdateWorld(engine,'High')
+            Adapt().UpdateWorld(engine, "High")
 
         if self.engineButton == "Render":
-            bpy.context.space_data.viewport_shade = 'RENDERED'
+            bpy.context.space_data.viewport_shade = "RENDERED"
 
-        return{'FINISHED'}
+        return {"FINISHED"}
+
 
 # Panel
 class TLGUI(bpy.types.Panel):
     # Create a Panel in the Tool Shelf
     bl_category = "Tangible Landscape"
     bl_label = "Tangibe Landscape "
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
 
     # Draw
     def draw(self, context):
@@ -1104,38 +1145,38 @@ class TLGUI(bpy.types.Panel):
         wm = context.window_manager
         # scene = context.scene
         box = layout.box()
-        box.label(text='System options')
+        box.label(text="System options")
         row = box.row(align=True)
-        row.operator("wm.modal_timer_operator",
-                     text="Turn on Watch Mode",
-                     icon="GHOST_ENABLED")
+        row.operator(
+            "wm.modal_timer_operator", text="Turn on Watch Mode", icon="GHOST_ENABLED"
+        )
 
         # Camera Options #
 
         box = layout.box()
-        box.alignment = 'CENTER'
-        box.label(text='Camera options', icon="CAMERA_DATA")
+        box.alignment = "CENTER"
+        box.label(text="Camera options", icon="CAMERA_DATA")
         row = box.row(align=True)
-        row.operator("wm.vantagecam",
-                     text="Tangibly selected views",
-                     icon="DECORATE_DRIVER")
+        row.operator(
+            "wm.vantagecam", text="Tangibly selected views", icon="DECORATE_DRIVER"
+        )
         row = box.row(align=True)
         row.operator("wm.humancam", text="Preset Human views", icon="SCENE")
         row = box.row()
         row.operator("wm.birdcam", text="Preset Birdviews", icon="HAIR")
         row = box.row()
-        row.operator("wm.rotarycam",
-                     text="Orbiting bird view",
-                     icon="ORIENTATION_GIMBAL")
+        row.operator(
+            "wm.rotarycam", text="Orbiting bird view", icon="ORIENTATION_GIMBAL"
+        )
 
         box = layout.box()
-        box.label(text='Atomospheric adjustments')
+        box.label(text="Atomospheric adjustments")
 
         row4 = box.row()
         row4.operator("wm.mist", text="Toggle Mist", icon="FORCE_TURBULENCE")
 
         box = layout.box()
-        box.label(text='Object operations')
+        box.label(text="Object operations")
 
         row1 = box.row()
         row1.operator("objects.operator", text="Remove trees").button = "TREES"
@@ -1143,25 +1184,21 @@ class TLGUI(bpy.types.Panel):
         row2.operator("objects.operator", text="Trail").button = "TRAIL"
         box = layout.box()
 
-        box.label(text='Rendering and Realism')
-        box.alignment = 'CENTER'
+        box.label(text="Rendering and Realism")
+        box.alignment = "CENTER"
         row4 = box.row()
-        row4.operator("render.engine",
-                      text="Blender").engineButton = "BLENDER_RENDER"
-        row4.operator("render.engine",
-                      text="Cycles").engineButton = "CYCLES"
-        row4.operator("render.engine",
-                      text="Render").engineButton = "Render"
+        row4.operator("render.engine", text="Blender").engineButton = "BLENDER_RENDER"
+        row4.operator("render.engine", text="Cycles").engineButton = "CYCLES"
+        row4.operator("render.engine", text="Render").engineButton = "Render"
 
         row5 = box.row()
         row5.label(text="Realism")
         row6 = box.row()
-        row6.operator("render.engine",
-                      text="Low poly").engineButton = "Low"
-        row6.operator("render.engine",
-                      text="Realistic").engineButton = "High"
+        row6.operator("render.engine", text="Low poly").engineButton = "Low"
+        row6.operator("render.engine", text="Realistic").engineButton = "High"
 
         layout.row().separator()
+
 
 class MessageOperator(bpy.types.Operator):
     bl_idname = "error.message"
@@ -1170,16 +1207,13 @@ class MessageOperator(bpy.types.Operator):
     message = StringProperty()
 
     def execute(self, context):
-        self.report({'INFO'}, self.message)
+        self.report({"INFO"}, self.message)
         print(self.message)
-        return {'FINISHED'}
+        return {"FINISHED"}
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_popup(self, width= 400, height=1000)
+        return wm.invoke_popup(self, width=400, height=1000)
 
     def draw(self, context):
         self.layout.label(self.message)
-
-
-

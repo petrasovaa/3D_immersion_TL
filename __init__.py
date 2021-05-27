@@ -18,16 +18,17 @@
 #  ***** GPL LICENSE BLOCK *****\
 
 bl_info = {
- "name": "Tangible Landscape Addon",
- "author": "Payam Tabrizian (ptabriz)",
- "version": (1, 0),
- "blender": (2, 83, 0),
- "location": "Tools",
- "description": "Real-time 3D modeling with Tangible Landscape",
- "warning": "",
- "wiki_url": "https://github.com/ptabriz/tangible-landscape-immersive-extension/blob/master/README.md",
- "tracker_url": "",
- "category": "view_3D"}
+    "name": "Tangible Landscape Addon",
+    "author": "Payam Tabrizian (ptabriz)",
+    "version": (1, 0),
+    "blender": (2, 83, 0),
+    "location": "Tools",
+    "description": "Real-time 3D modeling with Tangible Landscape",
+    "warning": "",
+    "wiki_url": "https://github.com/ptabriz/tangible-landscape-immersive-extension/blob/master/README.md",
+    "tracker_url": "",
+    "category": "view_3D",
+}
 
 import bpy, os
 import addon_utils
@@ -47,7 +48,7 @@ classes = (
     Modeling3D.TLGUI,
     Modeling3D.MessageOperator,
     prefs.TL_PREFS_SHOW,
-    prefs.TL_PREFS
+    prefs.TL_PREFS,
 )
 
 
@@ -57,9 +58,9 @@ def make_annotations(cls):
         return cls
     bl_props = {k: v for k, v in cls.__dict__.items() if isinstance(v, tuple)}
     if bl_props:
-        if '__annotations__' not in cls.__dict__:
-            setattr(cls, '__annotations__', {})
-        annotations = cls.__dict__['__annotations__']
+        if "__annotations__" not in cls.__dict__:
+            setattr(cls, "__annotations__", {})
+        annotations = cls.__dict__["__annotations__"]
         for k, v in bl_props.items():
             annotations[k] = v
             delattr(cls, k)
@@ -70,11 +71,13 @@ def register():
     for cls in classes:
         make_annotations(cls)
         bpy.utils.register_class(cls)
-    #prefs = bpy.context.user_preferences.addons[__package__].preferences
+    # prefs = bpy.context.user_preferences.addons[__package__].preferences
+
 
 def unregister():  # note how unregistering is done in reverse
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+
 
 if __name__ == "__main__":
     register()

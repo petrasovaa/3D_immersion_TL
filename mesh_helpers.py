@@ -24,23 +24,26 @@ import bmesh
 import array
 
 
-def bmesh_copy_from_object(obj, transform=True, triangulate=True, apply_modifiers=False):
+def bmesh_copy_from_object(
+    obj, transform=True, triangulate=True, apply_modifiers=False
+):
     """
     Returns a transformed, triangulated copy of the mesh
     """
 
-    assert(obj.type == 'MESH')
+    assert obj.type == "MESH"
 
     if apply_modifiers and obj.modifiers:
         import bpy
-        me = obj.to_mesh(bpy.context.scene, True, 'PREVIEW', calc_tessface=False)
+
+        me = obj.to_mesh(bpy.context.scene, True, "PREVIEW", calc_tessface=False)
         bm = bmesh.new()
         bm.from_mesh(me)
         bpy.data.meshes.remove(me)
         del bpy
     else:
         me = obj.data
-        if obj.mode == 'EDIT':
+        if obj.mode == "EDIT":
             bm_orig = bmesh.from_edit_mesh(me)
             bm = bm_orig.copy()
         else:
@@ -64,7 +67,7 @@ def bmesh_from_object(obj):
     Object/Edit Mode get mesh, use bmesh_to_object() to write back.
     """
     me = obj.data
-    is_editmode = (obj.mode == 'EDIT')
+    is_editmode = obj.mode == "EDIT"
     if is_editmode:
         bm = bmesh.from_edit_mesh(me)
     else:
@@ -78,7 +81,7 @@ def bmesh_to_object(obj, bm):
     Object/Edit Mode update the object.
     """
     me = obj.data
-    is_editmode = (obj.mode == 'EDIT')
+    is_editmode = obj.mode == "EDIT"
     if is_editmode:
         bmesh.update_edit_mesh(me, True)
     else:
@@ -104,21 +107,23 @@ def bmesh_check_self_intersect_object(obj):
     import bpy
 
     if not obj.data.polygons:
-        return array.array('i', ())
+        return array.array("i", ())
 
     bm = bmesh_copy_from_object(obj, transform=False, triangulate=False)
 
     import mathutils
+
     tree = mathutils.bvhtree.BVHTree.FromBMesh(bm, epsilon=0.00001)
 
     overlap = tree.overlap(tree)
     faces_error = {i for i_pair in overlap for i in i_pair}
-    return array.array('i', faces_error)
+    return array.array("i", faces_error)
 
 
 def bmesh_face_points_random(f, num_points=1, margin=0.05):
     import random
     from random import uniform
+
     uniform_args = 0.0 + margin, 1.0 - margin
 
     # for pradictable results
@@ -201,8 +206,7 @@ def bmesh_check_thick_object(obj, thickness):
 
     scene.update()
 
-    return array.array('i', faces_error)
-
+    return array.array("i", faces_error)
 
 
 def object_merge(context, objects):
@@ -235,14 +239,13 @@ def object_merge(context, objects):
 
     # loop over all meshes
     for obj in objects:
-        if obj.type != 'MESH':
+        if obj.type != "MESH":
             continue
 
         # convert each to a mesh
-        mesh_new = obj.to_mesh(scene=scene,
-                               apply_modifiers=True,
-                               settings='PREVIEW',
-                               calc_tessface=False)
+        mesh_new = obj.to_mesh(
+            scene=scene, apply_modifiers=True, settings="PREVIEW", calc_tessface=False
+        )
 
         # remove non-active uvs/vcols
         cd_remove_all_but_active(mesh_new.vertex_colors)
@@ -261,8 +264,8 @@ def object_merge(context, objects):
         del base_new, obj_new
 
         # remove object and its mesh, join does this
-        #~ scene.objects.unlink(obj_new)
-        #~ bpy.data.objects.remove(obj_new)
+        # ~ scene.objects.unlink(obj_new)
+        # ~ bpy.data.objects.remove(obj_new)
 
         bpy.data.meshes.remove(mesh_new)
 
@@ -270,4 +273,3 @@ def object_merge(context, objects):
 
     # return new object
     return base_base
-
