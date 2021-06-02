@@ -17,8 +17,10 @@
 #  All rights reserved.
 #  ***** GPL LICENSE BLOCK *****\
 
+import bpy
+
 bl_info = {
-    "name": "Tangible Landscape Addon",
+    "name": "Blender for Tangible Landscape",
     "author": "Payam Tabrizian (ptabriz)",
     "version": (1, 0),
     "blender": (2, 83, 0),
@@ -27,27 +29,20 @@ bl_info = {
     "warning": "",
     "wiki_url": "https://github.com/ptabriz/tangible-landscape-immersive-extension/blob/master/README.md",
     "tracker_url": "",
-    "category": "view_3D",
+    "category": "3D View",
 }
 
-import bpy, os
-import addon_utils
+
 from . import prefs
 from . import Modeling3D
-from .settings import getSettings, setSettings
+
 
 classes = (
     Modeling3D.ModalTimerOperator,
-    Modeling3D.BirdCam,
-    Modeling3D.HumanCam,
-    Modeling3D.RotaryCam,
-    Modeling3D.VantageCam,
-    Modeling3D.mist,
-    Modeling3D.Object_operators,
-    Modeling3D.Engine_buttons,
-    Modeling3D.TLGUI,
+    Modeling3D.TL_OT_Assets,
+    Modeling3D.TL_PT_GUI,
     Modeling3D.MessageOperator,
-    prefs.TL_PREFS_SHOW,
+    prefs.TL_OT_PREFS_SHOW,
     prefs.TL_PREFS,
 )
 
@@ -70,12 +65,16 @@ def make_annotations(cls):
 def register():
     for cls in classes:
         make_annotations(cls)
-        bpy.utils.register_class(cls)
-    # prefs = bpy.context.user_preferences.addons[__package__].preferences
+        try:
+            bpy.utils.register_class(cls)
+        except ValueError:
+            bpy.utils.unregister_class(cls)
+            bpy.utils.register_class(cls)
 
 
-def unregister():  # note how unregistering is done in reverse
+def unregister():
     for cls in reversed(classes):
+        print(cls)
         bpy.utils.unregister_class(cls)
 
 

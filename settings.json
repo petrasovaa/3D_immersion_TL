@@ -1,5 +1,9 @@
 {
-	"folder": "D:\\GitHub\\tangible-landscape-immersive-extension",
+	"folder": "/home/anna/Projects/blender/",
 	"CRS": "3358",
-	"timer": 1
+	"timer": 1,
+	"terrain": {"grass_texture_file": "textures/grass_final.jpg",
+				"sides_texture_file": "textures/dirt.jpg"
+				},
+	"world": {"texture_file": "textures/sky.jpg"}
 }

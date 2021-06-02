@@ -1,13 +1,10 @@
-import bpy, json
+import bpy
 from bpy.props import (
     StringProperty,
     IntProperty,
-    FloatProperty,
-    BoolProperty,
-    EnumProperty,
     FloatVectorProperty,
 )
-from bpy.types import Operator, Panel, AddonPreferences
+from bpy.types import AddonPreferences
 import addon_utils
 from . import bl_info
 from .settings import getSettings, setSettings
@@ -15,9 +12,9 @@ from .settings import getSettings, setSettings
 PKG = __package__
 
 
-class TL_PREFS_SHOW(bpy.types.Operator):
+class TL_OT_PREFS_SHOW(bpy.types.Operator):
 
-    bl_idname = "TL.pref_show"
+    bl_idname = "tl.prefs_show"
     bl_description = "Display Tangible landscape addon preferences"
     bl_label = "Preferences"
     bl_options = {"INTERNAL"}
@@ -84,7 +81,7 @@ class TL_PREFS(AddonPreferences):
         layout = self.layout
         # Basemaps
         box = layout.box()
-        box.label("Preferences")
+        box.label(text="Preferences")
         box.prop(self, "Folder")
         box.prop(self, "CRS")
         box.prop(self, "Timer")
