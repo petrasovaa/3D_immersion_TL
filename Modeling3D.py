@@ -317,6 +317,13 @@ class TL_OT_Assets(bpy.types.Operator):
         create_world(name="TL_world", texture_path=prefs.world_texture_path)
         bpy.context.scene.world = bpy.data.worlds.get("TL_world")
         bpy.context.space_data.shading.type = "RENDERED"
+        bpy.context.space_data.overlay.show_floor = False
+        bpy.context.space_data.overlay.show_axis_x = False
+        bpy.context.space_data.overlay.show_axis_y = False
+        bpy.context.space_data.overlay.show_axis_z = False
+        bpy.context.space_data.overlay.show_cursor = False
+        remove_object("Cube")
+
         return {"FINISHED"}
 
 
