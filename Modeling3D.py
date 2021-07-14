@@ -2,6 +2,7 @@ import bpy
 import os
 import math
 import bmesh
+from timeit import default_timer as timer
 
 from .settings import getSettings
 
@@ -14,6 +15,9 @@ from mathutils import Vector
 
 watchName = "Watch"
 terrainFile = "terrain.tif"
+waterFile = "water.tif"
+viewFile = "vantage.shp"
+dynamic_cam = "dynamic_camera"
 CRS = "EPSG:3358"
 
 
@@ -31,6 +35,8 @@ class Prefs:
         self.world_texture_path = os.path.join(
             folder, getSettings()["world"]["texture_file"]
         )
+        self.water_path = os.path.join(self.watchFolder, waterFile)
+        self.view_path = os.path.join(self.watchFolder, viewFile)
         self.CRS = "EPSG:" + getSettings()["CRS"]
         self.timer = getSettings()["timer"]
 
@@ -66,6 +72,22 @@ def create_terrain_material(name, texture_path, sides):
     mat.node_tree.links.new(output.inputs["Surface"], bsdf.outputs["BSDF"])
 
 
+def create_water_material(name):
+    # create material
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    output = nodes["Material Output"]
+    diffuse = nodes.new("ShaderNodeBsdfDiffuse")
+    transparent = nodes.new("ShaderNodeBsdfTransparent")
+    mix = nodes.new("ShaderNodeMixShader")
+    diffuse.inputs[0].default_value = (0.1, 0.2, 0.8, 1)
+    mix.inputs[0].default_value = 0.6
+    mat.node_tree.links.new(transparent.outputs["BSDF"], mix.inputs[1])
+    mat.node_tree.links.new(diffuse.outputs["BSDF"], mix.inputs[2])
+    mat.node_tree.links.new(mix.outputs["Shader"], output.inputs["Surface"])
+
+
 def create_world(name, texture_path):
     world = bpy.data.worlds.new(name=name)
     world.use_nodes = True
@@ -83,6 +105,7 @@ def create_world(name, texture_path):
 
 def addSide(objName, mat):
     ter = bpy.data.objects[objName]
+    fringe = ter.dimensions.x / 20
     ter.select_set(True)
 
     bpy.ops.object.mode_set(mode="EDIT")
@@ -109,24 +132,25 @@ def addSide(objName, mat):
     xmax = max(dic["x"])
     ymin = min(dic["y"])
     ymax = max(dic["y"])
+    zmin = min(dic["z"])
 
-    tres = 3
+    tres = 0.1
 
     for vert in vertices:
         if vert.co[0] < xmin + tres and vert.co[0] > xmin - tres:
             vert.select_set(True)
-            vert.co[2] = -50
+            vert.co[2] = zmin - fringe
 
         elif vert.co[1] < ymin + tres and vert.co[1] > ymin - tres:
             vert.select_set(True)
-            vert.co[2] = -50
+            vert.co[2] = zmin - fringe
 
         elif vert.co[0] < xmax + tres and vert.co[0] > xmax - tres:
             vert.select_set(True)
-            vert.co[2] = -50
+            vert.co[2] = zmin - fringe
         elif vert.co[1] < ymax + tres and vert.co[1] > ymax - tres:
             vert.select_set(True)
-            vert.co[2] = -50
+            vert.co[2] = zmin - fringe
 
     bmesh.update_edit_mesh(me, True)
 
@@ -176,8 +200,35 @@ def smooth(object_name, factor=2, iterations=4):
     modifier.iterations = iterations
 
 
+def create_dynamic_camera():
+    scn = bpy.context.scene
+    cam = bpy.data.cameras.new(dynamic_cam)
+    cam_obj = bpy.data.objects.new(dynamic_cam, cam)
+    scn.collection.objects.link(cam_obj)
+    target = bpy.data.objects.new(dynamic_cam + "_target", None)
+    scn.collection.objects.link(target)
+    cam_obj.constraints.new("TRACK_TO")
+    cam_obj.constraints["Track To"].target = target
+    cam_obj.constraints["Track To"].track_axis = "TRACK_NEGATIVE_Z"
+    cam_obj.constraints["Track To"].up_axis = "UP_Y"
+    cam_obj.hide_set(True)
+    target.hide_set(True)
+    cam_obj.data.show_passepartout = False
+    cam_obj.data.angle = 1.39626
+
+
+def toggle_camera(name):
+    camera = bpy.data.objects[name]
+    bpy.context.scene.camera = camera
+    bpy.context.view_layer.objects.active = camera
+
+    area = next(area for area in bpy.context.screen.areas if area.type == "VIEW_3D")
+    area.spaces[0].region_3d.view_perspective = "CAMERA"
+    bpy.ops.view3d.view_center_camera()
+
+
 def select_only(object_name):
-    """ selects the passed object"""
+    """selects the passed object"""
 
     if bpy.data.objects.get(object_name):
         obj = bpy.data.objects[object_name]
@@ -201,26 +252,59 @@ class Adapt:
         self.plane = "terrain"
         self.treePatch = "TreePatch"
         self.trail = "trail"
-        self.indexlist = []
-        self.importedlist = []
-        self.pointlist = []
         self.texture = "texture.tif"
         self.water = "water"
+        self.view = "vantage"
+        self.dimensions = None
 
     def terrainChange(self, path, CRS):
         # Delete terrain object
         remove_object(self.plane)
         bpy.ops.importgis.georaster(
-            filepath=path, importMode="DEM", subdivision="mesh", rastCRS=CRS
+            filepath=path, importMode="DEM", subdivision="mesh", step=2,
+            rastCRS=CRS, 
         )
         select_only(self.plane)
         bpy.ops.object.convert(target="MESH")
+        self.dimensions = bpy.data.objects['terrain'].dimensions
         assign_material(self.plane, material_name="terrain_material")
         addSide(self.plane, "terrain_material")
-
         os.remove(path)
 
-        return "finished"
+    def waterFill(self, path, CRS):
+        remove_object(self.water)
+        bpy.ops.importgis.georaster(
+            filepath=path, importMode="DEM", subdivision="mesh", step=2, rastCRS=CRS
+        )
+        bpy.ops.object.convert(target="MESH")
+        select_only(self.water)
+        bpy.context.object.show_transparent = True
+        assign_material(self.water, material_name="water_material")
+        # bpy.context.object.active_material.blend_method = "BLEND"
+        os.remove(path)
+
+    def camera_view(self, path, CRS):
+        remove_object(self.view)
+        bpy.ops.importgis.shapefile(filepath=path, shpCRS=CRS)
+        van_line = bpy.data.objects[self.view]
+        van_line.hide_set(True)
+        cam = bpy.data.objects[dynamic_cam]
+        target = bpy.data.objects[dynamic_cam + "_target"]
+
+        me = van_line.to_mesh()
+        me.transform(van_line.matrix_world)
+        cam.location = [
+            me.vertices[0].co.x,
+            me.vertices[0].co.y,
+            me.vertices[0].co.z + 5,
+        ]
+        target.location = [
+            me.vertices[-1].co.x,
+            me.vertices[-1].co.y,
+            me.vertices[0].co.z + 2,
+        ]
+        toggle_camera(dynamic_cam)
+        os.remove(path)
 
 
 class ModalTimerOperator(bpy.types.Operator):
@@ -244,15 +328,16 @@ class ModalTimerOperator(bpy.types.Operator):
                 self._timer_count = self._timer.time_duration
                 fileList = os.listdir(self.prefs.watchFolder)
 
-                if terrainFile in fileList:
-                    self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
-                    self.adaptMode = "TERRAIN"
+                # if terrainFile in fileList:
+                #     self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
+                if waterFile in fileList:
+                    self.adapt.waterFill(self.prefs.water_path, self.prefs.CRS)
+                # if viewFile in fileList:
+                #     self.adapt.camera_view(self.prefs.view_path, self.prefs.CRS)
 
         return {"PASS_THROUGH"}
 
     def execute(self, context):
-
-        # bpy.context.space_data.show_manipulator = False
         wm = context.window_manager
         wm.modal_handler_add(self)
 
@@ -304,6 +389,7 @@ class TL_OT_Assets(bpy.types.Operator):
 
     def execute(self, context):
         prefs = Prefs()
+        create_dynamic_camera()
         create_terrain_material(
             name="terrain_material",
             texture_path=prefs.terrain_texture_path,
@@ -314,6 +400,7 @@ class TL_OT_Assets(bpy.types.Operator):
             texture_path=prefs.terrain_sides_texture_path,
             sides=True,
         )
+        create_water_material(name="water_material")
         create_world(name="TL_world", texture_path=prefs.world_texture_path)
         bpy.context.scene.world = bpy.data.worlds.get("TL_world")
         bpy.context.space_data.shading.type = "RENDERED"
@@ -322,6 +409,9 @@ class TL_OT_Assets(bpy.types.Operator):
         bpy.context.space_data.overlay.show_axis_y = False
         bpy.context.space_data.overlay.show_axis_z = False
         bpy.context.space_data.overlay.show_cursor = False
+        bpy.context.space_data.overlay.show_text = False
+        bpy.context.space_data.show_gizmo_navigate = False
+
         remove_object("Cube")
 
         return {"FINISHED"}
