@@ -2,8 +2,29 @@
 	"folder": "/home/anna/Projects/blender/",
 	"CRS": "3358",
 	"timer": 1,
-	"terrain": {"grass_texture_file": "textures/grass_final.jpg",
-				"sides_texture_file": "textures/dirt.jpg"
-				},
-	"world": {"texture_file": "textures/sky.jpg"}
+	"terrain": {
+		"grass_texture_file": "textures/grass_final.jpg",
+		"sides_texture_file": "textures/dirt.jpg"
+	},
+	"trees": {
+		"class1": {
+			"model": "trees/river_birch_tree.blend",
+			"texture": "patch_class1.png"
+		},
+		"class2": {
+			"model": "trees/maple_tree.blend",
+			"texture": "patch_class2.png"
+		},
+		"class3": {
+			"model": "trees/eastern_white_pine_tree.blend",
+			"texture": "patch_class3.png"
+		},
+		"class4": {
+			"model": "trees/hornbeam_tree.blend",
+			"texture": "patch_class4.png"
+		}
+	},
+	"world": {
+		"texture_file": "textures/sky.jpg"
+	}
 }

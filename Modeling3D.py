@@ -39,6 +39,24 @@ class Prefs:
         self.view_path = os.path.join(self.watchFolder, viewFile)
         self.CRS = "EPSG:" + getSettings()["CRS"]
         self.timer = getSettings()["timer"]
+        self.trees = {}
+        for c in getSettings()["trees"]:
+            self.trees[c] = {}
+            self.trees[c]["model"] = os.path.join(folder, getSettings()["trees"][c]["model"])
+            self.trees[c]["texture"] = os.path.join(folder, getSettings()["trees"][c]["texture"])
+        self.tree_model_path = os.path.join(
+            folder, getSettings()["terrain"]["grass_texture_file"])
+
+
+def load_objects_from_file(filepath):
+    with bpy.data.libraries.load(filepath, link=False) as (src, dst):
+        dst.objects = [name for name in src.objects]
+    names = []
+    for obj in dst.objects:
+        bpy.context.collection.objects.link(obj)
+        names.append(obj.name)
+        obj.hide_set(True)
+    return names
 
 
 def assign_material(object_name, material_name):
@@ -50,6 +68,37 @@ def assign_material(object_name, material_name):
     if num_mat > 1:
         obj.active_material_index = num_mat - 1
         bpy.ops.object.material_slot_assign()
+
+
+def create_particle_system(name, particle_object_name):
+    tex = bpy.data.textures.new(name, type='IMAGE')
+    # tex.image = bpy.data.images.load(filepath=texture_path)
+
+    tmp_plane = "Plane"
+    bpy.ops.mesh.primitive_plane_add()
+    obj = bpy.data.objects[tmp_plane]
+    mod = obj.modifiers.new(name=name, type='PARTICLE_SYSTEM')
+    mod.particle_system.settings.name = name
+    psys = bpy.data.particles[name]
+    mtex = psys.texture_slots.add()
+    mtex.texture = tex
+    psys.distribution = 'RAND'
+    psys.render_type = 'OBJECT'
+    psys.use_rotations = True
+    psys.rotation_mode = 'OB_Z'
+    psys.use_rotation_instance = True
+    psys.phase_factor_random = 2
+    psys.particle_size = 1
+    psys.size_random = 0.5
+    psys.count = 1000
+    psys.use_emit_random = True
+    psys.use_modifier_stack = True
+    psys.use_even_distribution = False
+
+    psys.instance_object = bpy.data.objects[particle_object_name]
+    psys.use_fake_user = True
+
+    remove_object(tmp_plane)
 
 
 def create_terrain_material(name, texture_path, sides):
@@ -70,10 +119,10 @@ def create_terrain_material(name, texture_path, sides):
     mat.node_tree.links.new(bsdf.inputs["Base Color"], tex_image.outputs["Color"])
     # Link shading node to surface of output material
     mat.node_tree.links.new(output.inputs["Surface"], bsdf.outputs["BSDF"])
+    bsdf.inputs['Roughness'].default_value = 0.8
 
 
-def create_water_material(name):
-    # create material
+def create_fast_water_material(name):
     mat = bpy.data.materials.new(name=name)
     mat.use_nodes = True
     nodes = mat.node_tree.nodes
@@ -81,12 +130,38 @@ def create_water_material(name):
     diffuse = nodes.new("ShaderNodeBsdfDiffuse")
     transparent = nodes.new("ShaderNodeBsdfTransparent")
     mix = nodes.new("ShaderNodeMixShader")
+    node_to_delete = nodes['Principled BSDF']
+    nodes.remove(node_to_delete)
     diffuse.inputs[0].default_value = (0.1, 0.2, 0.8, 1)
     mix.inputs[0].default_value = 0.6
     mat.node_tree.links.new(transparent.outputs["BSDF"], mix.inputs[1])
     mat.node_tree.links.new(diffuse.outputs["BSDF"], mix.inputs[2])
     mat.node_tree.links.new(mix.outputs["Shader"], output.inputs["Surface"])
 
+
+def create_water_material(name):
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    output = nodes["Material Output"]
+    transparent = nodes.new("ShaderNodeBsdfTransparent")
+    mix = nodes.new("ShaderNodeMixShader")
+    noise = nodes.new("ShaderNodeTexNoise")
+    glossy = nodes.new("ShaderNodeBsdfGlossy")
+    node_to_delete = nodes['Principled BSDF']
+    nodes.remove(node_to_delete)
+    glossy.inputs[0].default_value = (0.5, 0.6, 0.8, 1)
+
+    glossy.inputs[1].default_value = 0.1
+    mix.inputs[0].default_value = 0.6
+    noise.inputs[2].default_value = 5
+    noise.inputs[3].default_value = 5
+    noise.inputs[4].default_value = 1
+    noise.inputs[5].default_value = 0.1
+    mat.node_tree.links.new(transparent.outputs["BSDF"], mix.inputs[1])
+    mat.node_tree.links.new(glossy.outputs["BSDF"], mix.inputs[2])
+    mat.node_tree.links.new(mix.outputs["Shader"], output.inputs["Surface"])
+    mat.node_tree.links.new(noise.outputs["Fac"], output.inputs["Displacement"])
 
 def create_world(name, texture_path):
     world = bpy.data.worlds.new(name=name)
@@ -102,6 +177,14 @@ def create_world(name, texture_path):
     world.node_tree.links.new(bg.outputs["Background"], out.inputs["Surface"])
     return world
 
+def add_sun():
+    sun = bpy.data.lights.new(name="Sun", type='SUN')
+    light_object = bpy.data.objects.new(name="Sun", object_data=sun)
+    sun.energy = 2
+    light_object.location = (0, 0, 1000)
+    light_object.rotation_euler = (0.9, 0.9, 0)
+    sun.shadow_cascade_max_distance = 1000
+    bpy.context.collection.objects.link(light_object)
 
 def addSide(objName, mat):
     ter = bpy.data.objects[objName]
@@ -242,9 +325,8 @@ def select_only(object_name):
 
 
 def remove_object(object_name):
-    obj = select_only(object_name)
-    if obj:
-        bpy.ops.object.delete()
+    if bpy.data.objects.get(object_name):
+        bpy.data.objects.remove(bpy.data.objects[object_name])
 
 
 class Adapt:
@@ -258,7 +340,7 @@ class Adapt:
         self.dimensions = None
 
     def terrainChange(self, path, CRS):
-        # Delete terrain object
+        # TODO: apply previous particle systems
         remove_object(self.plane)
         bpy.ops.importgis.georaster(
             filepath=path, importMode="DEM", subdivision="mesh", step=2,
@@ -276,11 +358,10 @@ class Adapt:
         bpy.ops.importgis.georaster(
             filepath=path, importMode="DEM", subdivision="mesh", step=2, rastCRS=CRS
         )
-        bpy.ops.object.convert(target="MESH")
         select_only(self.water)
-        bpy.context.object.show_transparent = True
+        bpy.ops.object.convert(target="MESH")
         assign_material(self.water, material_name="water_material")
-        # bpy.context.object.active_material.blend_method = "BLEND"
+        bpy.context.object.active_material.blend_method = "BLEND"
         os.remove(path)
 
     def camera_view(self, path, CRS):
@@ -306,6 +387,28 @@ class Adapt:
         toggle_camera(dynamic_cam)
         os.remove(path)
 
+    def trees(self, patch_files, watchFolder):
+        try:
+            terrain = bpy.data.objects[self.plane]
+        except KeyError:
+            print("no terrain for particles")
+            return
+        while terrain.modifiers:
+            terrain.modifiers.remove(terrain.modifiers[-1])
+        for patch_file in patch_files:
+            path = os.path.join(watchFolder, patch_file)
+            patch_type = os.path.splitext(patch_file)[0].split("_")[1]
+            if bpy.data.images.get(patch_file):
+                bpy.data.images.remove(bpy.data.images[patch_file])
+            bpy.data.textures[patch_type].image = bpy.data.images.load(path)
+            bpy.data.images[patch_file].pack()
+            terrain.modifiers.new(name=patch_type, type='PARTICLE_SYSTEM')
+            terrain.particle_systems[patch_type].settings = bpy.data.particles[patch_type]
+            for p in bpy.data.particles:
+                if p.users == 0:
+                    bpy.data.particles.remove(p)
+            os.remove(path)
+
 
 class ModalTimerOperator(bpy.types.Operator):
     """Operator which interatively runs from a timer"""
@@ -328,12 +431,19 @@ class ModalTimerOperator(bpy.types.Operator):
                 self._timer_count = self._timer.time_duration
                 fileList = os.listdir(self.prefs.watchFolder)
 
-                # if terrainFile in fileList:
-                #     self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
+                if terrainFile in fileList:
+                    self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
                 if waterFile in fileList:
                     self.adapt.waterFill(self.prefs.water_path, self.prefs.CRS)
-                # if viewFile in fileList:
-                #     self.adapt.camera_view(self.prefs.view_path, self.prefs.CRS)
+                if viewFile in fileList:
+                    self.adapt.camera_view(self.prefs.view_path, self.prefs.CRS)
+
+                patch_files = []
+                for f in fileList:
+                    if f.startswith("patch_"):
+                        patch_files.append(f)
+                if patch_files:
+                    self.adapt.trees(patch_files, self.prefs.watchFolder)
 
         return {"PASS_THROUGH"}
 
@@ -347,13 +457,13 @@ class ModalTimerOperator(bpy.types.Operator):
         self.prefs = Prefs()
         self.adapt = Adapt()
         self.adapt.realism = "High"
-        self._timer = wm.event_timer_add(self.prefs.timer, window=context.window)
-
         for file in os.listdir(self.prefs.watchFolder):
             try:
                 os.remove(os.path.join(self.prefs.watchFolder, file))
             except:
                 print("Could not remove file")
+        self._timer = wm.event_timer_add(self.prefs.timer, window=context.window)
+
 
         return {"RUNNING_MODAL"}
 
@@ -389,6 +499,7 @@ class TL_OT_Assets(bpy.types.Operator):
 
     def execute(self, context):
         prefs = Prefs()
+        add_sun()
         create_dynamic_camera()
         create_terrain_material(
             name="terrain_material",
@@ -411,8 +522,15 @@ class TL_OT_Assets(bpy.types.Operator):
         bpy.context.space_data.overlay.show_cursor = False
         bpy.context.space_data.overlay.show_text = False
         bpy.context.space_data.show_gizmo_navigate = False
+        bpy.context.space_data.overlay.show_outline_selected = False
+        bpy.context.space_data.overlay.show_extras = False
+        bpy.context.space_data.overlay.show_object_origins = False
+
 
         remove_object("Cube")
+        for each in prefs.trees:
+            tree_names = load_objects_from_file(prefs.trees[each]["model"])
+            create_particle_system(each, particle_object_name=tree_names[0])
 
         return {"FINISHED"}
 
