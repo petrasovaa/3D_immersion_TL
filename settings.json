@@ -7,21 +7,21 @@
 		"sides_texture_file": "textures/dirt.jpg"
 	},
 	"trees": {
-		"class2": {
+		"class4": {
 			"model": "trees/river_birch_tree.blend",
-			"texture": "patch_class2.png"
+			"texture": "patch_class4.png"
 		},
 		"class1": {
 			"model": "trees/maple_tree.blend",
 			"texture": "patch_class1.png"
 		},
-		"class3": {
+		"class2": {
 			"model": "trees/eastern_white_pine_tree.blend",
-			"texture": "patch_class3.png"
+			"texture": "patch_class2.png"
 		},
-		"class4": {
+		"class3": {
 			"model": "trees/hornbeam_tree.blend",
-			"texture": "patch_class4.png"
+			"texture": "patch_class3.png"
 		}
 	},
 	"world": {
