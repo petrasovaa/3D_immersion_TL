@@ -42,10 +42,15 @@ class Prefs:
         self.trees = {}
         for c in getSettings()["trees"]:
             self.trees[c] = {}
-            self.trees[c]["model"] = os.path.join(folder, getSettings()["trees"][c]["model"])
-            self.trees[c]["texture"] = os.path.join(folder, getSettings()["trees"][c]["texture"])
+            self.trees[c]["model"] = os.path.join(
+                folder, getSettings()["trees"][c]["model"]
+            )
+            self.trees[c]["texture"] = os.path.join(
+                folder, getSettings()["trees"][c]["texture"]
+            )
         self.tree_model_path = os.path.join(
-            folder, getSettings()["terrain"]["grass_texture_file"])
+            folder, getSettings()["terrain"]["grass_texture_file"]
+        )
 
 
 def load_objects_from_file(filepath):
@@ -71,21 +76,21 @@ def assign_material(object_name, material_name):
 
 
 def create_particle_system(name, particle_object_name):
-    tex = bpy.data.textures.new(name, type='IMAGE')
+    tex = bpy.data.textures.new(name, type="IMAGE")
     # tex.image = bpy.data.images.load(filepath=texture_path)
 
     tmp_plane = "Plane"
     bpy.ops.mesh.primitive_plane_add()
     obj = bpy.data.objects[tmp_plane]
-    mod = obj.modifiers.new(name=name, type='PARTICLE_SYSTEM')
+    mod = obj.modifiers.new(name=name, type="PARTICLE_SYSTEM")
     mod.particle_system.settings.name = name
     psys = bpy.data.particles[name]
     mtex = psys.texture_slots.add()
     mtex.texture = tex
-    psys.distribution = 'RAND'
-    psys.render_type = 'OBJECT'
+    psys.distribution = "RAND"
+    psys.render_type = "OBJECT"
     psys.use_rotations = True
-    psys.rotation_mode = 'OB_Z'
+    psys.rotation_mode = "OB_Z"
     psys.use_rotation_instance = True
     psys.phase_factor_random = 2
     psys.particle_size = 1
@@ -119,7 +124,7 @@ def create_terrain_material(name, texture_path, sides):
     mat.node_tree.links.new(bsdf.inputs["Base Color"], tex_image.outputs["Color"])
     # Link shading node to surface of output material
     mat.node_tree.links.new(output.inputs["Surface"], bsdf.outputs["BSDF"])
-    bsdf.inputs['Roughness'].default_value = 0.8
+    bsdf.inputs["Roughness"].default_value = 0.8
 
 
 def create_fast_water_material(name):
@@ -130,7 +135,7 @@ def create_fast_water_material(name):
     diffuse = nodes.new("ShaderNodeBsdfDiffuse")
     transparent = nodes.new("ShaderNodeBsdfTransparent")
     mix = nodes.new("ShaderNodeMixShader")
-    node_to_delete = nodes['Principled BSDF']
+    node_to_delete = nodes["Principled BSDF"]
     nodes.remove(node_to_delete)
     diffuse.inputs[0].default_value = (0.1, 0.2, 0.8, 1)
     mix.inputs[0].default_value = 0.6
@@ -148,7 +153,7 @@ def create_water_material(name):
     mix = nodes.new("ShaderNodeMixShader")
     noise = nodes.new("ShaderNodeTexNoise")
     glossy = nodes.new("ShaderNodeBsdfGlossy")
-    node_to_delete = nodes['Principled BSDF']
+    node_to_delete = nodes["Principled BSDF"]
     nodes.remove(node_to_delete)
     glossy.inputs[0].default_value = (0.5, 0.6, 0.8, 1)
 
@@ -162,6 +167,7 @@ def create_water_material(name):
     mat.node_tree.links.new(glossy.outputs["BSDF"], mix.inputs[2])
     mat.node_tree.links.new(mix.outputs["Shader"], output.inputs["Surface"])
     mat.node_tree.links.new(noise.outputs["Fac"], output.inputs["Displacement"])
+
 
 def create_world(name, texture_path):
     world = bpy.data.worlds.new(name=name)
@@ -177,14 +183,16 @@ def create_world(name, texture_path):
     world.node_tree.links.new(bg.outputs["Background"], out.inputs["Surface"])
     return world
 
+
 def add_sun():
-    sun = bpy.data.lights.new(name="Sun", type='SUN')
+    sun = bpy.data.lights.new(name="Sun", type="SUN")
     light_object = bpy.data.objects.new(name="Sun", object_data=sun)
     sun.energy = 2
     light_object.location = (0, 0, 1000)
     light_object.rotation_euler = (0.9, 0.9, 0)
     sun.shadow_cascade_max_distance = 1000
     bpy.context.collection.objects.link(light_object)
+
 
 def addSide(objName, mat):
     ter = bpy.data.objects[objName]
@@ -343,12 +351,15 @@ class Adapt:
         # TODO: apply previous particle systems
         remove_object(self.plane)
         bpy.ops.importgis.georaster(
-            filepath=path, importMode="DEM", subdivision="mesh", step=2,
-            rastCRS=CRS, 
+            filepath=path,
+            importMode="DEM",
+            subdivision="mesh",
+            step=2,
+            rastCRS=CRS,
         )
         select_only(self.plane)
         bpy.ops.object.convert(target="MESH")
-        self.dimensions = bpy.data.objects['terrain'].dimensions
+        self.dimensions = bpy.data.objects["terrain"].dimensions
         assign_material(self.plane, material_name="terrain_material")
         addSide(self.plane, "terrain_material")
         os.remove(path)
@@ -402,8 +413,10 @@ class Adapt:
                 bpy.data.images.remove(bpy.data.images[patch_file])
             bpy.data.textures[patch_type].image = bpy.data.images.load(path)
             bpy.data.images[patch_file].pack()
-            terrain.modifiers.new(name=patch_type, type='PARTICLE_SYSTEM')
-            terrain.particle_systems[patch_type].settings = bpy.data.particles[patch_type]
+            terrain.modifiers.new(name=patch_type, type="PARTICLE_SYSTEM")
+            terrain.particle_systems[patch_type].settings = bpy.data.particles[
+                patch_type
+            ]
             for p in bpy.data.particles:
                 if p.users == 0:
                     bpy.data.particles.remove(p)
@@ -440,7 +453,7 @@ class ModalTimerOperator(bpy.types.Operator):
 
                 patch_files = []
                 for f in fileList:
-                    if f.startswith("patch_") and f.endswith('.png'):
+                    if f.startswith("patch_") and f.endswith(".png"):
                         patch_files.append(f)
                 if patch_files:
                     self.adapt.trees(patch_files, self.prefs.watchFolder)
@@ -463,7 +476,6 @@ class ModalTimerOperator(bpy.types.Operator):
             except:
                 print("Could not remove file")
         self._timer = wm.event_timer_add(self.prefs.timer, window=context.window)
-
 
         return {"RUNNING_MODAL"}
 
@@ -525,7 +537,6 @@ class TL_OT_Assets(bpy.types.Operator):
         bpy.context.space_data.overlay.show_outline_selected = False
         bpy.context.space_data.overlay.show_extras = False
         bpy.context.space_data.overlay.show_object_origins = False
-
 
         remove_object("Cube")
         for each in prefs.trees:
