@@ -440,7 +440,7 @@ class ModalTimerOperator(bpy.types.Operator):
 
                 patch_files = []
                 for f in fileList:
-                    if f.startswith("patch_"):
+                    if f.startswith("patch_") and f.endswith('.png'):
                         patch_files.append(f)
                 if patch_files:
                     self.adapt.trees(patch_files, self.prefs.watchFolder)
