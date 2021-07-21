@@ -337,6 +337,34 @@ def remove_object(object_name):
         bpy.data.objects.remove(bpy.data.objects[object_name])
 
 
+def adjust3Dview(object):
+    """Adjust all 3d views clip distance to match the submited bbox.
+    From BlenderGIS addon."""
+    dst = round(max(object.dimensions))
+    k = 5  # increase factor
+    dst = dst * k
+    # set each 3d view
+    areas = bpy.context.screen.areas
+    for area in areas:
+        if area.type == "VIEW_3D":
+            space = area.spaces.active
+            if dst < 100:
+                space.clip_start = 1
+            elif dst < 1000:
+                space.clip_start = 10
+            else:
+                space.clip_start = 100
+            # Adjust clip end distance if the new obj is largest than actual setting
+            if space.clip_end < dst:
+                if dst > 10000000:
+                    dst = 10000000  # too large clip distance broke the 3d view
+                space.clip_end = dst
+            overrideContext = bpy.context.copy()
+            overrideContext["area"] = area
+            overrideContext["region"] = area.regions[-1]
+            bpy.ops.view3d.view_selected(overrideContext)
+
+
 class Adapt:
     def __init__(self):
         self.plane = "terrain"
@@ -349,6 +377,9 @@ class Adapt:
 
     def terrainChange(self, path, CRS):
         # TODO: apply previous particle systems
+        adjust_view = True
+        if bpy.data.objects.get(self.plane):
+            adjust_view = False
         remove_object(self.plane)
         bpy.ops.importgis.georaster(
             filepath=path,
@@ -363,6 +394,8 @@ class Adapt:
         assign_material(self.plane, material_name="terrain_material")
         addSide(self.plane, "terrain_material")
         os.remove(path)
+        if adjust_view:
+            adjust3Dview(bpy.data.objects.get(self.plane))
 
     def waterFill(self, path, CRS):
         remove_object(self.water)
