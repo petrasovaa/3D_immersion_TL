@@ -7,13 +7,13 @@
 		"sides_texture_file": "textures/dirt.jpg"
 	},
 	"trees": {
-		"class1": {
-			"model": "trees/river_birch_tree.blend",
-			"texture": "patch_class1.png"
-		},
 		"class2": {
-			"model": "trees/maple_tree.blend",
+			"model": "trees/river_birch_tree.blend",
 			"texture": "patch_class2.png"
+		},
+		"class1": {
+			"model": "trees/maple_tree.blend",
+			"texture": "patch_class1.png"
 		},
 		"class3": {
 			"model": "trees/eastern_white_pine_tree.blend",
