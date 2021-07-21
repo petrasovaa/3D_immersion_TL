@@ -476,20 +476,22 @@ class ModalTimerOperator(bpy.types.Operator):
             if self._timer.time_duration != self._timer_count:
                 self._timer_count = self._timer.time_duration
                 fileList = os.listdir(self.prefs.watchFolder)
+                try:
+                    if terrainFile in fileList:
+                        self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
+                    if waterFile in fileList:
+                        self.adapt.waterFill(self.prefs.water_path, self.prefs.CRS)
+                    if viewFile in fileList:
+                        self.adapt.camera_view(self.prefs.view_path, self.prefs.CRS)
 
-                if terrainFile in fileList:
-                    self.adapt.terrainChange(self.prefs.terrainPath, self.prefs.CRS)
-                if waterFile in fileList:
-                    self.adapt.waterFill(self.prefs.water_path, self.prefs.CRS)
-                if viewFile in fileList:
-                    self.adapt.camera_view(self.prefs.view_path, self.prefs.CRS)
-
-                patch_files = []
-                for f in fileList:
-                    if f.startswith("patch_") and f.endswith(".png"):
-                        patch_files.append(f)
-                if patch_files:
-                    self.adapt.trees(patch_files, self.prefs.watchFolder)
+                    patch_files = []
+                    for f in fileList:
+                        if f.startswith("patch_") and f.endswith(".png"):
+                            patch_files.append(f)
+                    if patch_files:
+                        self.adapt.trees(patch_files, self.prefs.watchFolder)
+                except RuntimeError:
+                    pass
 
         return {"PASS_THROUGH"}
 
