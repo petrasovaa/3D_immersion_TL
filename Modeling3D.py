@@ -17,7 +17,9 @@ watchName = "Watch"
 terrainFile = "terrain.tif"
 waterFile = "water.tif"
 viewFile = "vantage.shp"
+trailFile = "trail.shp"
 dynamic_cam = "dynamic_camera"
+bird_cam = "bird_camera"
 CRS = "EPSG:3358"
 
 
@@ -35,10 +37,15 @@ class Prefs:
         self.world_texture_path = os.path.join(
             folder, getSettings()["world"]["texture_file"]
         )
+        self.trail_texture_path = os.path.join(
+            folder, getSettings()["trail"]["texture_file"]
+        )
         self.water_path = os.path.join(self.watchFolder, waterFile)
         self.view_path = os.path.join(self.watchFolder, viewFile)
+        self.trail_path = os.path.join(self.watchFolder, trailFile)
         self.CRS = "EPSG:" + getSettings()["CRS"]
         self.timer = getSettings()["timer"]
+        self.profile = os.path.join(folder, getSettings()["trail"]["profile"])
         self.trees = {}
         for c in getSettings()["trees"]:
             self.trees[c] = {}
@@ -120,6 +127,24 @@ def create_terrain_material(name, texture_path, sides):
     mat.node_tree.links.new(
         coor.outputs["Object" if sides else "UV"], tex_image.inputs["Vector"]
     )
+    # Link image to Shading node color
+    mat.node_tree.links.new(bsdf.inputs["Base Color"], tex_image.outputs["Color"])
+    # Link shading node to surface of output material
+    mat.node_tree.links.new(output.inputs["Surface"], bsdf.outputs["BSDF"])
+    bsdf.inputs["Roughness"].default_value = 0.8
+
+
+def create_trail_material(name, texture_path):
+    # create material
+    mat = bpy.data.materials.new(name=name)
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    bsdf = nodes["Principled BSDF"]
+    output = nodes["Material Output"]
+    tex_image = nodes.new("ShaderNodeTexImage")
+    tex_image.image = bpy.data.images.load(texture_path)
+    # TODO: what about scale here?
+    tex_image.texture_mapping.scale.xyz = 100
     # Link image to Shading node color
     mat.node_tree.links.new(bsdf.inputs["Base Color"], tex_image.outputs["Color"])
     # Link shading node to surface of output material
@@ -272,25 +297,6 @@ def addSide(objName, mat):
     bpy.ops.object.mode_set(mode="OBJECT", toggle=False)
 
 
-def smooth(object_name, factor=2, iterations=4):
-    """Smooths a mesh by flattening the angles between adjacent faces in it.
-    It smooths without subdividing the mesh - the number of vertices remains
-    the same.
-    Keyword arguments:
-    object_name -- name of the object
-    factor -- The factor to control the smoothing amount. Higher values will
-    increase the effect.
-    iterations -- number of smoothing iterations, equivalent to executing the
-    smooth tool multiple times.
-    """
-
-    select_only(object_name)
-    bpy.ops.object.modifier_add(type="SMOOTH")
-    modifier = bpy.data.objects[object_name].modifiers["Smooth"]
-    modifier.factor = factor
-    modifier.iterations = iterations
-
-
 def create_dynamic_camera():
     scn = bpy.context.scene
     cam = bpy.data.cameras.new(dynamic_cam)
@@ -306,6 +312,38 @@ def create_dynamic_camera():
     target.hide_set(True)
     cam_obj.data.show_passepartout = False
     cam_obj.data.angle = 1.39626
+
+
+def create_bird_cameras():
+    scn = bpy.context.scene
+    for cam in range(5):
+        name = f"{bird_cam}_{cam}"
+        cam = bpy.data.cameras.new(name)
+        cam_obj = bpy.data.objects.new(name, cam)
+        scn.collection.objects.link(cam_obj)
+        cam_obj.hide_set(True)
+        cam_obj.data.show_passepartout = False
+        cam_obj.data.angle = 1.39626
+        cam_obj.constraints.new("TRACK_TO")
+        cam_obj.constraints["Track To"].track_axis = "TRACK_NEGATIVE_Z"
+        cam_obj.constraints["Track To"].up_axis = "UP_Y"
+
+
+def toggle_bird_cameras():
+    camera_names = []
+    for obj in bpy.data.objects:
+        if obj.name.startswith(bird_cam):
+            camera_names.append(obj.name)
+    current_cam = bpy.context.scene.camera
+    if current_cam.name in camera_names:
+        idx = camera_names.index(current_cam.name)
+    else:
+        idx = 0
+    idx += 1
+    if idx == len(camera_names):
+        idx = 0
+    camera = camera_names[idx]
+    toggle_camera(camera)
 
 
 def toggle_camera(name):
@@ -335,6 +373,32 @@ def select_only(object_name):
 def remove_object(object_name):
     if bpy.data.objects.get(object_name):
         bpy.data.objects.remove(bpy.data.objects[object_name])
+
+
+def adjust_bird_cameras(object):
+    dst = round(max(object.dimensions))
+    k = 1.5  # increase factor
+    kdst = dst * k
+
+    def circle(r, n):
+        return [
+            (math.cos(2 * math.pi / n * x) * r, math.sin(2 * math.pi / n * x) * r)
+            for x in range(1, n + 1)
+        ]
+
+    count = 0
+    for obj in bpy.data.objects:
+        if obj.name.startswith(bird_cam):
+            count += 1
+    positions = circle(kdst, count)
+    for obj, pos in zip(bpy.data.objects, positions):
+        if obj.name.startswith(bird_cam):
+            x, y = pos
+            obj.location.x = x
+            obj.location.y = y
+            obj.location.z = dst
+            obj.constraints["Track To"].target = object
+            obj.data.clip_end = 1.5 * kdst
 
 
 def adjust3Dview(object):
@@ -373,6 +437,7 @@ class Adapt:
         self.texture = "texture.tif"
         self.water = "water"
         self.view = "vantage"
+        self.trail = "trail"
         self.dimensions = None
 
     def terrainChange(self, path, CRS):
@@ -395,7 +460,9 @@ class Adapt:
         addSide(self.plane, "terrain_material")
         os.remove(path)
         if adjust_view:
-            adjust3Dview(bpy.data.objects.get(self.plane))
+            t = bpy.data.objects.get(self.plane)
+            adjust3Dview(t)
+            adjust_bird_cameras(t)
 
     def waterFill(self, path, CRS):
         remove_object(self.water)
@@ -455,6 +522,37 @@ class Adapt:
                     bpy.data.particles.remove(p)
             os.remove(path)
 
+    def trails(self, trail_path, CRS):
+        if not bpy.data.objects.get(self.plane):
+            return
+        remove_object(self.trail)
+        bpy.ops.importgis.shapefile(
+            filepath=trail_path, elevSource="OBJ", objElevName=self.plane, shpCRS=CRS
+        )
+        bm = bmesh.new()
+        t = bpy.data.objects[self.trail]
+        bm.from_mesh(t.data)
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges, cuts=3)
+        bm.to_mesh(t.data)
+        t.data.update()
+
+        modifier = t.modifiers.new(name="Wrap", type="SHRINKWRAP")
+        modifier.target = bpy.data.objects.get(self.plane)
+        modifier.wrap_method = "NEAREST_VERTEX"
+
+        select_only(self.trail)
+        bpy.ops.object.convert(target="CURVE")
+        bpy.context.object.data.bevel_object = bpy.data.objects["T_profile"]
+        bpy.context.object.data.bevel_mode = "OBJECT"
+        bpy.context.object.data.twist_mode = "Z_UP"
+        bpy.context.object.data.twist_smooth = 10
+        t.location[2] = t.location[2] + 1
+        assign_material(self.trail, material_name="trail_material")
+        modifier = t.modifiers.new(name="Smooth", type="SMOOTH")
+        modifier.factor = 0.5
+        modifier.iterations = 2
+        os.remove(trail_path)
+
 
 class ModalTimerOperator(bpy.types.Operator):
     """Operator which interatively runs from a timer"""
@@ -484,6 +582,8 @@ class ModalTimerOperator(bpy.types.Operator):
                     if viewFile in fileList:
                         self.adapt.camera_view(self.prefs.view_path, self.prefs.CRS)
 
+                    if trailFile in fileList:
+                        self.adapt.trails(self.prefs.trail_path, self.prefs.CRS)
                     patch_files = []
                     for f in fileList:
                         if f.startswith("patch_") and f.endswith(".png"):
@@ -538,6 +638,11 @@ class TL_PT_GUI(bpy.types.Panel):
         row.operator(
             "wm.modal_timer_operator", text="Turn on Watch Mode", icon="GHOST_ENABLED"
         )
+        box = layout.box()
+        box.alignment = "CENTER"
+        box.label(text="Camera options", icon="CAMERA_DATA")
+        row = box.row(align=True)
+        row.operator("tl.birdcam", text="Preset Bird views", icon="VIEW_CAMERA")
 
 
 class TL_OT_Assets(bpy.types.Operator):
@@ -548,6 +653,7 @@ class TL_OT_Assets(bpy.types.Operator):
         prefs = Prefs()
         add_sun()
         create_dynamic_camera()
+        create_bird_cameras()
         create_terrain_material(
             name="terrain_material",
             texture_path=prefs.terrain_texture_path,
@@ -557,6 +663,9 @@ class TL_OT_Assets(bpy.types.Operator):
             name="terrain_sides_material",
             texture_path=prefs.terrain_sides_texture_path,
             sides=True,
+        )
+        create_trail_material(
+            name="trail_material", texture_path=prefs.trail_texture_path
         )
         create_water_material(name="water_material")
         create_world(name="TL_world", texture_path=prefs.world_texture_path)
@@ -574,9 +683,21 @@ class TL_OT_Assets(bpy.types.Operator):
         bpy.context.space_data.overlay.show_object_origins = False
 
         remove_object("Cube")
+        load_objects_from_file(prefs.profile)
         for each in prefs.trees:
             tree_names = load_objects_from_file(prefs.trees[each]["model"])
             create_particle_system(each, particle_object_name=tree_names[0])
+
+        return {"FINISHED"}
+
+
+class BirdCam(bpy.types.Operator):
+    bl_idname = "tl.birdcam"
+    bl_label = "Toogle Bird views"
+
+    def execute(self, context):
+
+        toggle_bird_cameras()
 
         return {"FINISHED"}
 

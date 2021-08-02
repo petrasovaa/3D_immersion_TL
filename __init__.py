@@ -42,6 +42,7 @@ classes = (
     Modeling3D.TL_OT_Assets,
     Modeling3D.TL_PT_GUI,
     Modeling3D.MessageOperator,
+    Modeling3D.BirdCam,
     prefs.TL_OT_PREFS_SHOW,
     prefs.TL_PREFS,
 )

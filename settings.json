@@ -8,21 +8,25 @@
 	},
 	"trees": {
 		"class4": {
-			"model": "trees/river_birch_tree.blend",
+			"model": "assets/river_birch_tree.blend",
 			"texture": "patch_class4.png"
 		},
 		"class1": {
-			"model": "trees/maple_tree.blend",
+			"model": "assets/maple_tree.blend",
 			"texture": "patch_class1.png"
 		},
 		"class2": {
-			"model": "trees/eastern_white_pine_tree.blend",
+			"model": "assets/eastern_white_pine_tree.blend",
 			"texture": "patch_class2.png"
 		},
 		"class3": {
-			"model": "trees/hornbeam_tree.blend",
+			"model": "assets/hornbeam_tree.blend",
 			"texture": "patch_class3.png"
 		}
+	},
+	"trail": {
+		"profile": "assets/T_profile.blend",
+		"texture_file": "textures/boardwalk.png"
 	},
 	"world": {
 		"texture_file": "textures/sky.jpg"
