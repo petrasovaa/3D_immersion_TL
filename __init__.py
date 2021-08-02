@@ -43,6 +43,7 @@ classes = (
     Modeling3D.TL_PT_GUI,
     Modeling3D.MessageOperator,
     Modeling3D.BirdCam,
+    Modeling3D.ClearOperators,
     prefs.TL_OT_PREFS_SHOW,
     prefs.TL_PREFS,
 )

@@ -396,9 +396,17 @@ def adjust_bird_cameras(object):
             x, y = pos
             obj.location.x = x
             obj.location.y = y
-            obj.location.z = dst
+            obj.location.z = 0.75 * dst
             obj.constraints["Track To"].target = object
-            obj.data.clip_end = 1.5 * kdst
+            obj.data.clip_end = k * kdst
+
+
+def adjust_sun(object):
+    dst = round(max(object.dimensions))
+    k = 2  # increase factor
+    kdst = dst * k
+    bpy.data.objects["Sun"].data.shadow_cascade_max_distance = kdst
+    bpy.data.objects["Sun"].location.z = dst
 
 
 def adjust3Dview(object):
@@ -463,6 +471,11 @@ class Adapt:
             t = bpy.data.objects.get(self.plane)
             adjust3Dview(t)
             adjust_bird_cameras(t)
+            adjust_sun(t)
+        else:
+            for obj in bpy.data.objects:
+                if obj.name.startswith(bird_cam):
+                    obj.constraints["Track To"].target = bpy.data.objects[self.plane]
 
     def waterFill(self, path, CRS):
         remove_object(self.water)
@@ -552,6 +565,10 @@ class Adapt:
         modifier.factor = 0.5
         modifier.iterations = 2
         os.remove(trail_path)
+        files = os.listdir(os.path.dirname(trail_path))
+        for f in files[:]:
+            if os.path.basename(trail_path).split(".")[0] in f:
+                os.remove(os.path.join(os.path.dirname(trail_path), f))
 
 
 class ModalTimerOperator(bpy.types.Operator):
@@ -644,6 +661,18 @@ class TL_PT_GUI(bpy.types.Panel):
         row = box.row(align=True)
         row.operator("tl.birdcam", text="Preset Bird views", icon="VIEW_CAMERA")
 
+        box = layout.box()
+        box.label(text="Remove")
+
+        row1 = box.row()
+        row1.operator(
+            "objects.operator", text="Remove trees", icon="RNDCURVE"
+        ).button = "TREES"
+        row2 = box.row()
+        row2.operator(
+            "objects.operator", text="Remove trail", icon="IPO_EASE_IN_OUT"
+        ).button = "TRAIL"
+
 
 class TL_OT_Assets(bpy.types.Operator):
     bl_idname = "tl.assets"
@@ -698,6 +727,23 @@ class BirdCam(bpy.types.Operator):
     def execute(self, context):
 
         toggle_bird_cameras()
+
+        return {"FINISHED"}
+
+
+class ClearOperators(bpy.types.Operator):
+    bl_idname = "objects.operator"
+    bl_label = "Object Operators"
+    button: bpy.props.StringProperty()
+
+    def execute(self, context):
+        if self.button == "TREES":
+            terrain = bpy.data.objects.get("terrain")
+            if terrain:
+                while terrain.modifiers:
+                    terrain.modifiers.remove(terrain.modifiers[-1])
+        elif self.button == "TRAIL":
+            remove_object("trail")
 
         return {"FINISHED"}
 
