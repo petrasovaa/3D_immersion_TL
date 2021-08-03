@@ -546,23 +546,14 @@ class Adapt:
         bpy.ops.importgis.shapefile(
             filepath=trail_path, elevSource="OBJ", objElevName=self.plane, shpCRS=CRS
         )
-        bm = bmesh.new()
         t = bpy.data.objects[self.trail]
-        bm.from_mesh(t.data)
-        bmesh.ops.subdivide_edges(bm, edges=bm.edges, cuts=3)
-        bm.to_mesh(t.data)
-        t.data.update()
-
-        modifier = t.modifiers.new(name="Wrap", type="SHRINKWRAP")
-        modifier.target = bpy.data.objects.get(self.plane)
-        modifier.wrap_method = "NEAREST_VERTEX"
-
         select_only(self.trail)
         bpy.ops.object.convert(target="CURVE")
         bpy.context.object.data.bevel_object = bpy.data.objects["T_profile"]
         bpy.context.object.data.bevel_mode = "OBJECT"
         bpy.context.object.data.twist_mode = "Z_UP"
         bpy.context.object.data.twist_smooth = 10
+        bpy.context.object.data.use_fill_caps = True
         t.location[2] = t.location[2] + 1
         assign_material(self.trail, material_name="trail_material")
         modifier = t.modifiers.new(name="Smooth", type="SMOOTH")
