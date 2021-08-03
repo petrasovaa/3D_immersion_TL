@@ -2,6 +2,7 @@
 	"folder": "/home/anna/Projects/blender/",
 	"CRS": "3358",
 	"timer": 5,
+	"scale": 1,
 	"terrain": {
 		"grass_texture_file": "textures/grass_final.jpg",
 		"sides_texture_file": "textures/dirt.jpg"

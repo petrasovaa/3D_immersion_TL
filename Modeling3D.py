@@ -45,6 +45,7 @@ class Prefs:
         self.trail_path = os.path.join(self.watchFolder, trailFile)
         self.CRS = "EPSG:" + getSettings()["CRS"]
         self.timer = getSettings()["timer"]
+        self.scale = getSettings()["scale"]
         self.profile = os.path.join(folder, getSettings()["trail"]["profile"])
         self.trees = {}
         for c in getSettings()["trees"]:
@@ -60,13 +61,14 @@ class Prefs:
         )
 
 
-def load_objects_from_file(filepath):
+def load_objects_from_file(filepath, scale=1):
     with bpy.data.libraries.load(filepath, link=False) as (src, dst):
         dst.objects = [name for name in src.objects]
     names = []
     for obj in dst.objects:
         bpy.context.collection.objects.link(obj)
         names.append(obj.name)
+        obj.scale *= scale
         obj.hide_set(True)
     return names
 
@@ -122,6 +124,8 @@ def create_terrain_material(name, texture_path, sides):
     output = nodes["Material Output"]
     tex_image = nodes.new("ShaderNodeTexImage")
     tex_image.image = bpy.data.images.load(texture_path)
+    if not sides:
+        tex_image.texture_mapping.scale.xyz = 3
     coor = nodes.new("ShaderNodeTexCoord")
 
     mat.node_tree.links.new(
@@ -396,7 +400,7 @@ def adjust_bird_cameras(object):
             x, y = pos
             obj.location.x = x
             obj.location.y = y
-            obj.location.z = 0.75 * dst
+            obj.location.z = dst
             obj.constraints["Track To"].target = object
             obj.data.clip_end = k * kdst
 
@@ -712,9 +716,9 @@ class TL_OT_Assets(bpy.types.Operator):
         bpy.context.space_data.overlay.show_object_origins = False
 
         remove_object("Cube")
-        load_objects_from_file(prefs.profile)
+        load_objects_from_file(prefs.profile, scale=prefs.scale)
         for each in prefs.trees:
-            tree_names = load_objects_from_file(prefs.trees[each]["model"])
+            tree_names = load_objects_from_file(prefs.trees[each]["model"], scale=prefs.scale)
             create_particle_system(each, particle_object_name=tree_names[0])
 
         return {"FINISHED"}
