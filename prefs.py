@@ -49,7 +49,7 @@ class TL_PREFS(AddonPreferences):
         prefs["timer"] = self.Timer
         setSettings(prefs)
 
-    Folder = StringProperty(
+    Folder: StringProperty(
         name="Coupling folder",
         default=getSettings()["folder"],
         description="Define a folder where the Blender File is located (e.g., D:/TL_coupling)",
@@ -57,14 +57,14 @@ class TL_PREFS(AddonPreferences):
         update=updateFolder,
     )
 
-    CRS = StringProperty(
+    CRS: StringProperty(
         name="Coordinate Reference System",
         default=getSettings()["CRS"],
         description="Type in EPSG code of the file Georeferene system e.g., 4328",
         subtype="NONE",
         update=updateCRS,
     )
-    Timer = IntProperty(
+    Timer: IntProperty(
         name="Update speed",
         default=1,
         description="Type in number of updates per seconds: This would increase the update rate at the expense of performance",
@@ -72,7 +72,7 @@ class TL_PREFS(AddonPreferences):
         update=updateTime,
     )
 
-    fontColor = FloatVectorProperty(
+    fontColor: FloatVectorProperty(
         name="Font color", subtype="COLOR", min=0, max=1, size=4, default=(0, 0, 0, 1)
     )
 
